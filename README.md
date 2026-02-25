@@ -6,6 +6,7 @@ Update path name for data and results to direct the scripts to appropriate direc
 
 # Data Structure
 
+```
 project-dir/
 │
 ├── data/
@@ -13,11 +14,17 @@ project-dir/
 │   │   ├── drug_extracted_data/
 │   │   ├── reported_outcomes/
 │   │   │   ├── SIDER_data/
+│   │   │   ├── OnSIDES_data/
+│   │
 │   ├── interim/
 │   │   ├── reported_outcomes/
-│   │   │   ├── SIDER_data/
+│   │   │   ├── SIDER_outcomes/
+│   │   │   ├── OnSIDES_outcomes/
+│   │   │   ├── Bumps_outcomes/
+│   │
 │   ├── processed/
 │
 ├── results/
 │
 ├── scripts/       
+```
