@@ -2,7 +2,7 @@
 Using genetic data to predict drug teratogenicity via intended interaction between the drug and it's targets (Route A)
 
 # Config.env setup
-Update path name for data and results to direct the scripts to appropriate directories
+Update path name for data and results to direct the scripts to appropriate directories using config-template.env
 
 # Data Structure
 
@@ -28,3 +28,15 @@ project-dir/
 │
 ├── scripts/       
 ```
+
+# Data Sources
+
+## Reported Drug Outcomes
+
+### SIDER
+
+### OnSIDES
+
+### Bumps
+
+### FAERS
