@@ -1,7 +1,12 @@
 #######################################################
 # Set Working Directory
 #######################################################
+install.packages("dotenv")
 
-args <- commandArgs(trailingOnly = T)
-datadir <- args[1]
-resultsdir <- args[2]
+library(dotenv)
+
+load_dot_env("config.env")
+
+data_dir <- Sys.getenv("datadir")
+results_dir <- Sys.getenv("resultsdir")
+
