@@ -12,11 +12,11 @@ from sentence_transformers.util import cos_sim
 import os
 
 # Defining Model
-#model_name = "all-mpnet-base-v2" # 	All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
+model_name = "all-mpnet-base-v2" # 	All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
 #model_name = "all-MiniLM-L6-v2" # All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
 #model_name = "pritamdeka/S-PubMedBert-MS-MARCO"  # Biomedical domain-specific model, trained on PubMed articles and MS MARCO dataset.
 #model_name = "kamalkraj/BioSimCSE-BioLinkBERT-BASE" # BioSimCSE model using the BioLinkBERT base model. It’s trained via contrastive learning on biomedical text. Very good for semantic similarity, sentence-level embedding in biomedical domain.
-model_name = "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16" # Lightweight version of SapBERT (16-bit) as a sentence-transformer, built on PubMedBERT. Useful for UMLS-concept embedding with lower memory.
+#model_name = "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16" # Lightweight version of SapBERT (16-bit) as a sentence-transformer, built on PubMedBERT. Useful for UMLS-concept embedding with lower memory.
 
 # Models have been sourced from: 
 #   https://sbert.net/docs/sentence_transformer/pretrained_models.html or
