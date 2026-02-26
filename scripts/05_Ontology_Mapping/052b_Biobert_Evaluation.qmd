@@ -1,0 +1,159 @@
+---
+title: "Evaluating Ontology Mapping with BioBERT Similarity"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(here)
+
+# Read environment file
+#load_dot_env("config.env")
+readRenviron(here("config.env"))
+
+base_dir <- Sys.getenv("interimdatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+biobert_results_dir <- file.path(base_dir, "ontology_mapping/output_data")
+```
+
+# Evaluating Positive and Negative Controls
+
+This was done using known pairs of outcomes:  
+  * Some were similar with different names  
+  * Some were different with similar names  
+I then assessed how well the models ranked these outcomes
+
+## Function to Assess Model Performance
+
+This function uses a Spearman rank correlation, it has:  
+  * More focus on the order/ranking rather than the exact values  
+  * Robust to the fact that cosine similarities may be scaled differently across models  
+
+```{r}
+#| label: Model Assessment Function
+#| include: true
+
+model_assessment <- function(model){
+
+  # Biobert results
+  results_path <- file.path(biobert_results_dir, model, "test/test_omim_onsides_similarity_matrix.csv")
+  test_sim_matrix <- as.matrix(fread(results_path), rownames = 1)
+  
+  test_observed <- data.frame(
+    OMIM_terms = rownames(test_sim_matrix),
+    OnSIDES_terms = colnames(test_sim_matrix),
+    cos_sim = diag(test_sim_matrix)
+  )
+
+  # Manually curated expected cosine similarity values
+  expected_path <- file.path(base_dir, "ontology_mapping/input_data/test/test_omim.csv")
+  test_expected <- fread(expected_path)
+
+  # Upper and lower bounds of expected cosine similarity
+  test_expected$lower_expected <- NA
+  test_expected$upper_expected <- NA
+  
+  for (i in 1:nrow(test_expected)){
+    test_expected$lower_expected[i] <- unlist(strsplit(test_expected$Expected_cosine[i], split = "-"))[1]
+    test_expected$upper_expected[i] <- unlist(strsplit(test_expected$Expected_cosine[i], split = "-"))[2]
+  }
+  
+  # Combine observed and expected data for comparison
+  test_comparison <- cbind(test_observed, test_expected[,4:5])
+  
+  predicted_sim <- test_comparison$cos_sim
+  lower_bound <- as.numeric(test_comparison$lower_expected)
+  upper_bound <- as.numeric(test_comparison$upper_expected)
+  
+  cor_upper <- cor(predicted_sim, upper_bound, method = "spearman")
+  cor_lower <- cor(predicted_sim, lower_bound, method = "spearman")
+  
+  return(list(upper_limit = cor_upper, lower_limit = cor_lower))
+}
+
+```
+
+## Model: all-MiniLM-L6-v2
+```{r}
+#| label: all-MiniLM-L6-v2 assessmenet
+#| include: true
+
+model <- "all-MiniLM-L6-v2"
+
+all_MiniLM_L6_v2_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+all_MiniLM_L6_v2_results
+  
+```
+
+## Model: all-mpnet-base-v2
+```{r}
+#| label: all-mpnet-base-v2 assessment
+#| include: true
+
+model <- "all-mpnet-base-v2"
+
+all_mpnet_base_v2_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+all_mpnet_base_v2_results
+
+```
+
+## Model: kamalkraj/BioSimCSE-BioLinkBERT-BASE
+```{r}
+#| label: kamalkraj/BioSimCSE-BioLinkBERT-BASE assessment
+#| include: true
+
+model <- "kamalkraj/BioSimCSE-BioLinkBERT-BASE"
+
+BioSimCSE_BioLinkBERT_BASE_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+BioSimCSE_BioLinkBERT_BASE_results
+
+```
+
+## Model: pritamdeka/S-PubMedBert-MS-MARCO
+```{r}
+#| label: pritamdeka/S-PubMedBert-MS-MARCO assessment
+#| include: true
+
+model <- "pritamdeka/S-PubMedBert-MS-MARCO"
+
+S_PubMedBert_MS_MARCO_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+S_PubMedBert_MS_MARCO_results
+
+```
+
+## Model: UMCU/SapBERT-from-PubMedBERT-fulltext_bf16
+```{r}
+#| label: UMCU/SapBERT-from-PubMedBERT-fulltext_bf16 assessment
+#| include: true
+
+model <- "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16"
+
+SapBERT_from_PubMedBERT_fulltext_bf16_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+SapBERT_from_PubMedBERT_fulltext_bf16_results  
+```

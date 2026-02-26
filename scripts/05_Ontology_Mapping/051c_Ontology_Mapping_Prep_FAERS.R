@@ -6,6 +6,7 @@
 # Load in libraries
 #######################################################
 
+library(dotenv)
 library(dplyr)
 library(tidyr)
 library(readr)
