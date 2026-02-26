@@ -4,6 +4,12 @@ Using genetic data to predict drug teratogenicity via intended interaction betwe
 # Config.env setup
 Update path name for data and results to direct the scripts to appropriate directories using config-template.env
 
+# Virtual Environment
+
+Before running a python script, enter the virtual environment.
+To enter the virtual environment, run the following command in the terminal:
+source venv/bin/activate
+
 # Data Structure
 
 ```
@@ -42,3 +48,4 @@ project-dir/
 ### FAERS
 
 # BioBert Models - Link
+Include test file with positive and negative controls

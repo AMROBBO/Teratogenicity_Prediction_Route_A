@@ -4,19 +4,25 @@ cosine similarity.
 
 Predicted and Observed outcomes must have column "Outcome" containing the terms.
 """
-
+from pathlib import Path
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import pandas as pd
 from sentence_transformers.util import cos_sim
 import os
 
-# Defining Model
-model_name = "all-mpnet-base-v2" # 	All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
+# Load environment variables
+load_dotenv("config.env")
+base_dir = Path(os.getenv("interimdatadir"))
+
+# Defining Model 
+#   - Uncomment the model you want to use for embedding calculation, or choose your own from HuggingFace or Sentence Transformers library.
+#model_name = "all-mpnet-base-v2" # 	All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
 #model_name = "all-MiniLM-L6-v2" # All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.
 #model_name = "pritamdeka/S-PubMedBert-MS-MARCO"  # Biomedical domain-specific model, trained on PubMed articles and MS MARCO dataset.
 #model_name = "kamalkraj/BioSimCSE-BioLinkBERT-BASE" # BioSimCSE model using the BioLinkBERT base model. It’s trained via contrastive learning on biomedical text. Very good for semantic similarity, sentence-level embedding in biomedical domain.
-#model_name = "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16" # Lightweight version of SapBERT (16-bit) as a sentence-transformer, built on PubMedBERT. Useful for UMLS-concept embedding with lower memory.
+model_name = "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16" # Lightweight version of SapBERT (16-bit) as a sentence-transformer, built on PubMedBERT. Useful for UMLS-concept embedding with lower memory.
 
 # Models have been sourced from: 
 #   https://sbert.net/docs/sentence_transformer/pretrained_models.html or
@@ -25,7 +31,8 @@ model_name = "all-mpnet-base-v2" # 	All-round model tuned for many use-cases. Tr
 # Initialize the model
 model = SentenceTransformer(model_name)
 
-# Initialize input dataset
+# Initialize input dataset 
+#   - Ensure only one predicted and one observed dataset is uncommented at a time
 predicted_dataset = "omim"
 #observed_dataset = "onsides"
 #observed_dataset = "bumps"
@@ -33,8 +40,8 @@ predicted_dataset = "omim"
 observed_dataset = "faers_cong"
 
 # Base directories
-input_base_dir = "Input_data"
-output_base_dir = "Results"
+input_base_dir = base_dir / "ontology_mapping/input_data"
+output_base_dir = base_dir / "ontology_mapping/output_data"
 
 # Loop through all folders in Input_data
 for drug_name in os.listdir(input_base_dir):
@@ -73,7 +80,7 @@ for drug_name in os.listdir(input_base_dir):
         print(f"Warning: Missing Predicted or Observed file for {drug_name}. Skipping...")
         continue
     
-    # OMIM terms
+    # Predicted terms
     predicted_terms = pd.read_csv(predicted_file)["Outcome"].tolist()
     
     # Calculate embeddings
@@ -85,12 +92,12 @@ for drug_name in os.listdir(input_base_dir):
     print(f"Embedding dimension: {predicted_embeddings.shape[1]}")
     print(f"Embeddings shape: {predicted_embeddings.shape}")
         
-    # Save embeddings to file
-    predicted_output_file = f"{output_dir}/{drug_name}_{predicted_dataset}_embeddings.csv"
-    np.savetxt(predicted_output_file, predicted_embeddings, delimiter=",", fmt="%.6f")
-    print(f"\nEmbeddings saved to: {predicted_output_file}")
+    # Save embeddings to file - uncomment is you want to save predicted embeddings
+    #predicted_output_file = f"{output_dir}/{drug_name}_{predicted_dataset}_embeddings.csv"
+    #np.savetxt(predicted_output_file, predicted_embeddings, delimiter=",", fmt="%.6f")
+    #print(f"\nEmbeddings saved to: {predicted_output_file}")
     
-    # OnSIDES terms
+    # Observed terms
     observed_terms = pd.read_csv(observed_file)["Outcome"].tolist()
     
     # Calculate embeddings
@@ -103,10 +110,10 @@ for drug_name in os.listdir(input_base_dir):
     print(f"Embedding dimension: {observed_embeddings.shape[1]}")
     print(f"Embeddings shape: {observed_embeddings.shape}")
     
-    # Save embeddings to file
-    observed_output_file = f"{output_dir}/{drug_name}_{observed_dataset}_embeddings.csv"
-    np.savetxt(observed_output_file, observed_embeddings, delimiter=",", fmt="%.6f")
-    print(f"\nEmbeddings saved to: {observed_output_file}")
+    # Save embeddings to file - uncomment is you want to save observed embeddings
+    #observed_output_file = f"{output_dir}/{drug_name}_{observed_dataset}_embeddings.csv"
+    #np.savetxt(observed_output_file, observed_embeddings, delimiter=",", fmt="%.6f")
+    #print(f"\nEmbeddings saved to: {observed_output_file}")
     
     # Calculate similarity between terms
     print("\n" + "=" * 60)
