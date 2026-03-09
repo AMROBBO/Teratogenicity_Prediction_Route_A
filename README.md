@@ -21,12 +21,17 @@ project-dir/
 │   │   ├── reported_outcomes/
 │   │   │   ├── SIDER_data/
 │   │   │   ├── OnSIDES_data/
+│   │   │   ├── FAERS/
+│   │   ├── predicted_outcomes/
+│   │   │   ├── Drug_Bank/
+│   │   │   ├── OMIM_data/
 │   │
 │   ├── interim/
 │   │   ├── reported_outcomes/
 │   │   │   ├── SIDER_outcomes/
 │   │   │   ├── OnSIDES_outcomes/
 │   │   │   ├── Bumps_outcomes/
+│   │   │   ├── FAERS_outcomes/
 │   │
 │   ├── processed/
 │
