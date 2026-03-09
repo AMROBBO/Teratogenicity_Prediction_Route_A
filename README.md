@@ -99,7 +99,7 @@ https://www.omim.org/
 4. Save as tsv
 5. Add target name to end of file name
 
-# BioBert Models
+## BioBert Models
 
 Include test file with positive and negative controls?
 
@@ -107,7 +107,7 @@ Models have been sourced from:
  - https://sbert.net/docs/sentence_transformer/pretrained_models.html or
  - https://huggingface.co/models?p=1&sort=trending&search=PubMedBERT
 
-# LLM Models
+## LLM Models
 
 Models were sources from:
  - https://ollama.com/search
