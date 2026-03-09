@@ -31,8 +31,8 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/DeepSeek")
 # Set outcome of interest
 #######################################################
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+outcome_cat <- "all"
+#outcome_cat <- "cong"
 
 #######################################################
 # Create functions
@@ -109,7 +109,7 @@ submit_query <- function(query, drug, outcome){
     dir.create(output_path)
   }
   
-  output_path <- file.path(output_dir, drug, outcome)
+  output_path <- file.path(output_dir, drug, outcome_cat)
   
   if (!dir.exists(output_path)) {
     dir.create(output_path)
@@ -139,15 +139,15 @@ submit_query <- function(query, drug, outcome){
 #######################################################
 # Run model
 #######################################################
-######################### Run Qwn scripts and then go from here
+
 pull_model("deepseek-r1:8b")
 
 for (f in list.files(input_dir, full.names = T)){
   
-  drug <- unlist(strsplit(f, split = "/"))[2]
+  drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
   files <- list.files(paste(f, outcome_cat, sep = "/"), pattern = ".json", full.names = T)
 
-  if (length(file) > 0){
+  if (length(files) > 0){
     for (i in files) {
       
       qwen_output <- jsonlite::fromJSON(i) %>% 

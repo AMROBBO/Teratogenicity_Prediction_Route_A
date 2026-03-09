@@ -81,7 +81,7 @@ make_qwen_query <- function(term, matches){
        "matches": [
        {{
        "faers_term": "..."
-       "similarity_score": 0.0-1.0
+       "similarity_score": 0.0-5.0
        "brief_rationale": "..."
        }}
        ]
