@@ -32,10 +32,19 @@ project-dir/
 │   │   │   ├── OnSIDES_outcomes/
 │   │   │   ├── Bumps_outcomes/
 │   │   │   ├── FAERS_outcomes/
+│   │   ├── predicted_outcomes/
+│   │   │   ├── Drug_Bank_targets/
+│   │   │   ├── OMIM_outcomes/
+│   │   ├── ontology_mapping/
+│   │   │   ├── input_data/
+│   │   │   ├── output_data/
+│   │   │   │   ├── Qwen/
+│   │   │   │   ├── DeepSeek/
 │   │
 │   ├── processed/
 │
 ├── results/
+│   ├── docs/
 │
 ├── scripts/       
 ```
