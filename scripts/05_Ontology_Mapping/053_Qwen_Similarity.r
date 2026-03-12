@@ -30,8 +30,8 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/Qwen")
 # Set outcome of interest
 #######################################################
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 #######################################################
 # Create functions
@@ -112,6 +112,7 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
   
   outcome_collapsed <- gsub(" ", "_", outcome)
   outcome_collapsed <- gsub("/", "_", outcome_collapsed)
+  outcome_collapsed <- gsub(",", "", outcome_collapsed)
   
   output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
   output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))

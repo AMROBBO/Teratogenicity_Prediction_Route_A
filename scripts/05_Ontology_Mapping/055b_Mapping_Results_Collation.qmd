@@ -1,0 +1,313 @@
+---
+title: "Presenting Collated Ontology Terms - OMIM and FAERS Outcomes"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(jsonlite)
+library(dplyr)
+library(here)
+library(knitr)
+library(kableExtra)
+
+# Read environment file
+#load_dot_env("config.env")
+readRenviron(here("config.env"))
+
+base_dir <- Sys.getenv("processeddatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+LLM_results_dir <- file.path(base_dir, "OMIM_FAERS_outcomes")
+
+```
+
+# Mapped Predicted and Observed Drug outcomes
+
+**Predicted outcomes** - OMIM phenotpic outcomes resulting from genetic variation in drug target gene
+
+**Observed outcomes** - FAERS adverse events associated with drugs. This dataset includes all outcomes and those that are pregnancy and congenitally related.
+
+## The terms have been mapped in three steps:
+    1. Biobert model to calculate cosine similarity between OMIM and FAERS terms. Filtered for the top 30 most similar FAERS terms for each OMIM term.
+    2. Qwen2.5 model to generate a confidence score of 0-5 for each OMIM-FAERS term pair based on the closeness of the traits. Those with a score of 0 were filtered out.
+    3. DeepSeek model to generate a confidence score of 0-5 for each OMIM-FAERS term pair based on the closeness of the traits. Those with a score 0-1 were rejected.
+
+## Confidence Score Interpretation:
+    5: Exact or near-perfect conceptual match
+    4: Strong pathophysiological relationship (same disease category, direct complications)
+    3: Moderate relationship (shared mechanisms, risk factors, or related conditions)
+    2: Weak relationship (indirect connections, shared symptoms)
+    1: Very loose association
+    0: No association
+
+# Drugs of Interest:
+    * Captopril
+    * Methotrexate
+    * Mycophenolate mofetil
+    * Thalidomide
+    * Tretinoin
+    * Valproate
+    * Warfarin
+
+# Captopril
+## All outcomes
+
+```{r}
+#| label: Captopril all
+#| include: true
+#| echo: false
+
+captopril_results_path <- file.path(LLM_results_dir, "captopril/all/captopril_omim_faers_LLM_all_accepted.csv")
+
+captopril_results <- fread(captopril_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(captopril_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Captopril congenital
+#| include: true
+#| echo: false
+
+captopril_results_path <- file.path(LLM_results_dir, "captopril/cong/captopril_omim_faers_LLM_cong_accepted.csv")
+
+captopril_results <- fread(captopril_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(captopril_results) %>%
+  kable_styling() 
+
+```
+
+# Methotrexate
+## All outcomes
+
+```{r}
+#| label: Methotrexate all
+#| include: true
+#| echo: false
+
+methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/all/methotrexate_omim_faers_LLM_all_accepted.csv")
+
+methotrexate_results <- fread(methotrexate_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(methotrexate_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+```{r}
+#| label: Methotrexate cong
+#| include: true
+#| echo: false
+
+methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/cong/methotrexate_omim_faers_LLM_cong_accepted.csv")
+
+methotrexate_results <- fread(methotrexate_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(methotrexate_results) %>%
+  kable_styling() 
+
+```
+
+# Mycophenolate mofetil
+## All outcomes
+
+```{r}
+#| label: Mycophenolate mofetil all
+#| include: true
+#| echo: false
+
+mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/all/mycophenolate_mofetil_omim_faers_LLM_all_accepted.csv")
+
+mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(mycophenolate_mofetil_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Mycophenolate mofetil cong
+#| include: true
+#| echo: false
+
+mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/cong/mycophenolate_mofetil_omim_faers_LLM_cong_accepted.csv")
+
+mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
+    select(Predicted_term, Observed_term)
+
+kable(mycophenolate_mofetil_results) %>%
+  kable_styling() 
+
+```
+
+# Thalidomide
+## All outcomes
+
+```{r}
+#| label: Thalidomide all
+#| include: true
+#| echo: false
+
+thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/all/thalidomide_omim_faers_LLM_all_accepted.csv")
+
+thalidomide_results <- fread(thalidomide_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(thalidomide_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Thalidomide cong
+#| include: true
+#| echo: false
+
+thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/cong/thalidomide_omim_faers_LLM_cong_accepted.csv")
+
+thalidomide_results <- fread(thalidomide_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(thalidomide_results) %>%
+  kable_styling() 
+
+```
+
+# Tretinoin
+## All outcomes
+
+```{r}
+#| label: Tretinoin all
+#| include: true
+#| echo: false
+
+tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/all/tretinoin_omim_faers_LLM_all_accepted.csv")
+
+tretinoin_results <- fread(tretinoin_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(tretinoin_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Tretinoin cong
+#| include: true
+#| echo: false
+
+tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/cong/tretinoin_omim_faers_LLM_cong_accepted.csv")
+
+tretinoin_results <- fread(tretinoin_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(tretinoin_results) %>%
+  kable_styling() 
+
+```
+
+# Valproate
+## All outcomes
+
+```{r}
+#| label: Valproate all
+#| include: true
+#| echo: false
+
+valproate_results_path <- file.path(LLM_results_dir, "valproate/all/valproate_omim_faers_LLM_all_accepted.csv")
+
+valproate_results <- fread(valproate_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(valproate_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Valproate cong
+#| include: true
+#| echo: false
+
+valproate_results_path <- file.path(LLM_results_dir, "valproate/cong/valproate_omim_faers_LLM_cong_accepted.csv")
+
+valproate_results <- fread(valproate_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(valproate_results) %>%
+  kable_styling() 
+
+```
+
+# Warfarin
+## All outcomes
+
+```{r}
+#| label: Warfarin all
+#| include: true
+#| echo: false
+
+warfarin_results_path <- file.path(LLM_results_dir, "warfarin/all/warfarin_omim_faers_LLM_all_accepted.csv")
+
+warfarin_results <- fread(warfarin_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(warfarin_results) %>%
+  kable_styling() 
+
+```
+
+## Pregnancy and congenitally related outcomes only
+
+```{r}
+#| label: Warfarin cong
+#| include: true
+#| echo: false
+
+warfarin_results_path <- file.path(LLM_results_dir, "warfarin/cong/warfarin_omim_faers_LLM_cong_accepted.csv")
+
+warfarin_results <- fread(warfarin_results_path) %>%
+     select(Predicted_term, Observed_term)
+
+kable(warfarin_results) %>%
+  kable_styling() 
+
+```
+
+# Render
+```{r}
+quarto::quarto_render(
+  "05_Ontology_Mapping/055b_Mapping_Results_Collation.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
+```

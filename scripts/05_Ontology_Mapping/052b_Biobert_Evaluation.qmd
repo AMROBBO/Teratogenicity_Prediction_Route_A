@@ -88,6 +88,7 @@ model_assessment <- function(model){
 ```{r}
 #| label: all-MiniLM-L6-v2 assessmenet
 #| include: true
+#| echo: false
 
 model <- "all-MiniLM-L6-v2"
 
@@ -103,6 +104,7 @@ all_MiniLM_L6_v2_results
 ```{r}
 #| label: all-mpnet-base-v2 assessment
 #| include: true
+#| echo: false
 
 model <- "all-mpnet-base-v2"
 
@@ -118,6 +120,7 @@ all_mpnet_base_v2_results
 ```{r}
 #| label: kamalkraj/BioSimCSE-BioLinkBERT-BASE assessment
 #| include: true
+#| echo: false
 
 model <- "kamalkraj/BioSimCSE-BioLinkBERT-BASE"
 
@@ -133,6 +136,7 @@ BioSimCSE_BioLinkBERT_BASE_results
 ```{r}
 #| label: pritamdeka/S-PubMedBert-MS-MARCO assessment
 #| include: true
+#| echo: false
 
 model <- "pritamdeka/S-PubMedBert-MS-MARCO"
 
@@ -148,6 +152,7 @@ S_PubMedBert_MS_MARCO_results
 ```{r}
 #| label: UMCU/SapBERT-from-PubMedBERT-fulltext_bf16 assessment
 #| include: true
+#| echo: false
 
 model <- "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16"
 
@@ -156,4 +161,12 @@ SapBERT_from_PubMedBERT_fulltext_bf16_results <- model_assessment(model = model)
 print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
 
 SapBERT_from_PubMedBERT_fulltext_bf16_results  
+```
+
+# Render
+```{r}
+quarto::quarto_render(
+  "05_Ontology_Mapping/052b_Biobert_Evaluation.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
 ```

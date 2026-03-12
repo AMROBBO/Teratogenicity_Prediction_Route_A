@@ -31,8 +31,8 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/DeepSeek")
 # Set outcome of interest
 #######################################################
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 #######################################################
 # Create functions
@@ -117,6 +117,7 @@ submit_query <- function(query, drug, outcome){
   
   outcome_collapsed <- gsub(" ", "_", outcome)
   outcome_collapsed <- gsub("/", "_", outcome_collapsed)
+  outcome_collapsed <- gsub(",", "", outcome_collapsed)
   
   output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
   output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))
@@ -142,7 +143,7 @@ submit_query <- function(query, drug, outcome){
 
 pull_model("deepseek-r1:8b")
 
-for (f in list.files(input_dir, full.names = T)){
+for (f in list.files(input_dir, full.names = T)[26:31]){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
   files <- list.files(paste(f, outcome_cat, sep = "/"), pattern = ".json", full.names = T)
