@@ -31,8 +31,17 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/DeepSeek")
 # Set outcome of interest
 #######################################################
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#predicted <- "omim"
+predicted <- "gpmap"
+
+outcome_cat <- "all"
+#outcome_cat <- "cong"
+
+if (predicted == "gpmap"){
+  dataset = "Genotype-Phenotype Map"
+} else if (predicted == "omim"){
+  dataset = "OMIM"
+}
 
 #######################################################
 # Create functions
@@ -41,7 +50,7 @@ outcome_cat <- "cong"
 # Creating a query that will cycle through each OMIM term and its corresponding FAERS terms
 
 deepseek_prompt <- glue("
-You are adjudicating conceptual similarity between OMIM disease terms and FAERS adverse event terms.
+You are adjudicating conceptual similarity between ", dataset, " disease terms and FAERS adverse event terms.
 Your task is STRICT conceptual evaluation.
 
 Use the following conceptual similarity rationale to assign a similarity score: 
@@ -53,7 +62,7 @@ Use the following conceptual similarity rationale to assign a similarity score:
 0: No association (REJECT)
 
 Rules:
-- The FAERS term must represent the same core pathology or a direct clinical manifestation of the OMIM condition.
+- The FAERS term must represent the same core pathology or a direct clinical manifestation of the ", dataset, " condition.
 - Broader, narrower, or loosely related conditions should be rejected.
 - Shared anatomy alone is insufficient.
 - Prefer rejection over weak similarity.
@@ -75,13 +84,13 @@ make_deepseek_query <- function(term, matches){
        '
        The terms are:
        
-       OMIM term: {term}
+       ', dataset, ' term: {term}
        
        FAERS candidate terms (choose only from this list): {matches}
        
        Return in a strict JSON format:
        {{
-       "omim_term": "..."
+       "', predicted, '_term": "..."
        "adjudicated_matches": [
        {{
        "faers_term": "..."
@@ -109,7 +118,13 @@ submit_query <- function(query, drug, outcome){
     dir.create(output_path)
   }
   
-  output_path <- file.path(output_dir, drug, outcome_cat)
+  output_path <- file.path(output_path, predicted)
+  
+  if (!dir.exists(output_path)) {
+    dir.create(output_path)
+  }
+  
+  output_path <- file.path(output_path, outcome_cat)
   
   if (!dir.exists(output_path)) {
     dir.create(output_path)
@@ -118,6 +133,8 @@ submit_query <- function(query, drug, outcome){
   outcome_collapsed <- gsub(" ", "_", outcome)
   outcome_collapsed <- gsub("/", "_", outcome_collapsed)
   outcome_collapsed <- gsub(",", "", outcome_collapsed)
+  outcome_collapsed <- gsub("\\(", "", outcome_collapsed)
+  outcome_collapsed <- gsub("\\)", "", outcome_collapsed)
   
   output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
   output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))
@@ -143,10 +160,10 @@ submit_query <- function(query, drug, outcome){
 
 pull_model("deepseek-r1:8b")
 
-for (f in list.files(input_dir, full.names = T)[26:31]){
+for (f in list.files(input_dir, full.names = T)){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
-  files <- list.files(paste(f, outcome_cat, sep = "/"), pattern = ".json", full.names = T)
+  files <- list.files(file.path(f, predicted, outcome_cat), pattern = ".json", full.names = T)
 
   if (length(files) > 0){
     for (i in files) {
@@ -154,15 +171,17 @@ for (f in list.files(input_dir, full.names = T)[26:31]){
       qwen_output <- jsonlite::fromJSON(i) %>% 
         as.data.frame()
       
-      OMIM <- unique(qwen_output$omim_term)
+      prediction_column <- paste0(predicted, "_term")
+      
+      prediction <- unique(qwen_output[[prediction_column]])
       FAERS <- qwen_output %>% 
-        filter(omim_term == OMIM) %>% 
+        filter(qwen_output[[prediction_column]] == prediction) %>% 
         select(matches.faers_term) %>% 
         as.list()
       
-      query <- make_deepseek_query(OMIM, FAERS)
+      query <- make_deepseek_query(prediction, FAERS)
       
-      submit_query(query, drug, OMIM)
+      submit_query(query, drug, prediction)
     }
   }
 }

@@ -22,7 +22,7 @@ load_dot_env("config.env")
 interim_data <- Sys.getenv("interimdatadir")
 
 targets_file <- file.path(interim_data, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
-output_dir <- file.path(interim_data, "predicted_outcomes/G_P_Map_Variants")
+output_dir <- file.path(interim_data, "predicted_outcomes")
 
 #######################################################
 # Reading in Drug Target Genes
@@ -181,13 +181,30 @@ for (i in target_genes){
 }
 
 #######################################################
+# Extracting unique variants
+#######################################################
+
+unique_variants <- all_associations %>% 
+  select(drug_target, rsid.x, beta, se, p, eaf, variant_type) %>% 
+  unique()
+
+#######################################################
+# Extracting unique traits
+#######################################################
+
+unique_traits <- all_traits %>% 
+  select("rsid", "trait_name", "trait_category", "beta", "se", "p", "eaf", "drug_target") %>% 
+  unique()
+
+#######################################################
 # Save
 #######################################################
 
-fwrite(all_associations, file.path(interim_data, "predicted_outcomes/G_P_Map_Variants", "all_variants.csv"))
-fwrite(all_traits, file.path(interim_data, "predicted_outcomes/G_P_Map_Outcomes", "all_coloc_traits.csv"))
+fwrite(all_associations, file.path(output_dir, "G_P_Map_Variants", "all_variants.csv"))
+fwrite(unique_variants, file.path(output_dir, "G_P_Map_Variants", "unique_variants.csv"))
 
-
+fwrite(all_traits, file.path(output_dir, "G_P_Map_Outcomes", "all_coloc_traits.csv"))
+fwrite(unique_traits, file.path(output_dir, "G_P_Map_Outcomes", "unique_coloc_traits.csv"))
 
 # Q: Difference between id and snp_id and study_id?
 # - associations$snp_id = variants$id = coloc_groups$snp_id = rare_variants$snp_id = study_extractions$snp_id

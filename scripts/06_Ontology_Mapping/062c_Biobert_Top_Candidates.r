@@ -58,7 +58,8 @@ results_dir <- file.path(input_dir, model)
 # Choose datasets of interest - Ensure only one of each is uncommented
 #######################################################
 
-predicted <- "omim"
+#predicted <- "omim"
+predicted <- "gpmap"
 #observed <- "onsides"
 #observed <- "bumps"
 #observed <- "faers_all"
@@ -103,7 +104,7 @@ for (i in 1:length(list.files(results_dir, full.names = T))){
   drug_files <- list.files(list.files(results_dir, full.names = T)[i], full.names = T)
   
   case_file <- grep(paste0("/", drug_name), list.files(raw_dir, full.names = T), value = T)
-  case_file <- list.files(case_file,full.names = T, pattern = observed)
+  case_file <- list.files(case_file, full.names = T, pattern = observed)
   
   sim_file <- grep(paste(predicted, observed, "similarity_matrix.csv", sep = "_"), drug_files, value = T)
   

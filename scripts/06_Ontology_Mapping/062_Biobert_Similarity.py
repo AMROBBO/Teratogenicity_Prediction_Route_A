@@ -33,7 +33,8 @@ model = SentenceTransformer(model_name)
 
 # Initialize input dataset 
 #   - Ensure only one predicted and one observed dataset is uncommented at a time
-predicted_dataset = "omim"
+#predicted_dataset = "omim"
+predicted_dataset = "gpmap"
 #observed_dataset = "onsides"
 #observed_dataset = "bumps"
 #observed_dataset = "faers_all"

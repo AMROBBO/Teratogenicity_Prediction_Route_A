@@ -30,8 +30,17 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/Qwen")
 # Set outcome of interest
 #######################################################
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#predicted <- "omim"
+predicted <- "gpmap"
+
+outcome_cat <- "all"
+#outcome_cat <- "cong"
+
+if (predicted == "gpmap"){
+  dataset = "Genotype-Phenotype Map"
+} else if (predicted == "omim"){
+  dataset = "OMIM"
+}
 
 #######################################################
 # Create functions
@@ -39,7 +48,7 @@ outcome_cat <- "cong"
 
 # Creating a query that will cycle through each OMIM term and its corresponding FAERS terms
 
-qwen_prompt <- glue("You are performing controlled conceptual alignment between OMIM disease terms and FAERS adverse event terms.
+qwen_prompt <- glue("You are performing controlled conceptual alignment between ", dataset, " disease terms and FAERS adverse event terms.
 
 Rules:
 - You may ONLY select terms from the provided FAERS list.
@@ -58,7 +67,7 @@ For each FAERS term, assign a similarity score from 0 to 5 following the provide
 0: No association (Don't include in the output)
 
 For each match provide:
-- omim_term
+- ", predicted, "_term
 - faers_term (exact string from list)
 - similarity_score (0 to 5)
 - brief_rationale (1 sentence grounded in shared pathology or anatomy)
@@ -70,14 +79,14 @@ make_qwen_query <- function(term, matches){
        
        The terms are:
        
-       OMIM term: {term}
+       ', dataset, ' term: {term}
        
        FAERS candidate terms (choose only from this list):
        {matches}
        
        Return in a strict JSON format:
        {{
-       "omim_term": "..."
+       "',predicted,'_term": "..."
        "matches": [
        {{
        "faers_term": "..."
@@ -104,6 +113,12 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
     dir.create(output_path)
   }
   
+  output_path <- file.path(output_path, predicted)
+  
+  if (!dir.exists(output_path)) {
+    dir.create(output_path)
+  }
+  
   output_path <- file.path(output_path, outcome_cat)
   
   if (!dir.exists(output_path)) {
@@ -113,6 +128,8 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
   outcome_collapsed <- gsub(" ", "_", outcome)
   outcome_collapsed <- gsub("/", "_", outcome_collapsed)
   outcome_collapsed <- gsub(",", "", outcome_collapsed)
+  outcome_collapsed <- gsub("\\(", "", outcome_collapsed)
+  outcome_collapsed <- gsub("\\)", "", outcome_collapsed)
   
   output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
   output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))
@@ -146,25 +163,25 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
 
 pull_model("qwen2.5:7b")
 
-for (f in list.files(input_dir, full.names = T)){
+for (f in list.files(input_dir, full.names = T)[35:length(list.files(input_dir, full.names = T))]){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
-  file <- grep(paste("omim_faers", outcome_cat, "top_30.csv", sep = "_"), list.files(f, full.names = T), value = T)
+  file <- grep(paste(predicted, "faers", outcome_cat, "top_30.csv", sep = "_"), list.files(f, full.names = T), value = T)
 
   if (length(file) > 0){
     biobert_terms <- read.csv(file)
     
-    OMIM_terms <- unique(biobert_terms$Predicted_term)
+    predicted_terms <- unique(biobert_terms$Predicted_term)
     
-    for (i in OMIM_terms){
-      OMIM <- i
+    for (i in predicted_terms){
+      prediction <- i
       FAERS <- biobert_terms %>% 
-        filter(biobert_terms$Predicted_term == OMIM) %>% 
+        filter(biobert_terms$Predicted_term == prediction) %>% 
         select(Observed_term)
       
-      query <- make_qwen_query(OMIM, FAERS)
+      query <- make_qwen_query(prediction, FAERS)
       
-      submit_qwen_query(query, drug, OMIM)
+      submit_qwen_query(query, drug, prediction)
     }
   }
 }
