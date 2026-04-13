@@ -29,14 +29,22 @@ interim_data <- Sys.getenv("interimdatadir")
 processed_data <- Sys.getenv("processeddatadir")
 
 input_dir <- file.path(interim_data, "ontology_mapping/output_data")
-output_base_dir <- file.path(processed_data, "OMIM_FAERS_outcomes")
 
 #######################################################
 # Set outcome of interest
 #######################################################
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#predicted <- "omim"
+predicted <- "gpmap"
+
+outcome_cat <- "all"
+#outcome_cat <- "cong"
+
+output_base_dir <- file.path(processed_data, paste0(toupper(predicted), "_FAERS_outcomes"))
+
+if (!dir.exists(output_base_dir)) {
+  dir.create(output_base_dir)
+}
 
 #######################################################
 # Read in data, drug by drug
@@ -55,13 +63,14 @@ for (f in list.files(deepseek_results, full.names = T)){
   
   ## Biobert output
   
-  biobert_file <- list.files(biobert_results, pattern = drug, full.names = T) %>% 
+  biobert_file <- list.files(biobert_results, pattern = paste0("^", drug, "$"), full.names = T) %>% 
     list.files(., full.names = T) %>% 
-    grep(paste("omim_faers", outcome_cat, "top_30.csv", sep = "_"), ., value = T)
+    grep(paste(predicted, "faers", outcome_cat, "top_30.csv", sep = "_"), ., value = T)
   
   if(length(biobert_file) > 0){
     
-    biobert <- fread(biobert_file)
+    biobert <- fread(biobert_file) %>% 
+      unique()
     
     ## Qwen output
     
@@ -69,7 +78,8 @@ for (f in list.files(deepseek_results, full.names = T)){
     qwen_colnames <- c("Predicted_term", "Observed_term", "Confidence_Qwen", "Rationale_Qwen")
     colnames(qwen_all) <- qwen_colnames
     
-    qwen_files <- list.files(qwen_results, pattern = drug, full.names = T) %>% 
+    qwen_files <- list.files(qwen_results, pattern = drug, full.names = T) %>%
+      list.files(., pattern = predicted, full.names = T) %>% 
       list.files(., pattern = outcome_cat, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
@@ -89,7 +99,8 @@ for (f in list.files(deepseek_results, full.names = T)){
     deepseek_colnames <- c("Predicted_term", "Observed_term", "Decision_Deepseek", "Confidence_Deepseek", "Rationale_Deepseek")
     colnames(deepseek_all) <- deepseek_colnames
     
-    deepseek_files <- list.files(f, pattern = outcome_cat, full.names = T) %>% 
+    deepseek_files <- list.files(f, pattern = predicted, full.names = T) %>% 
+      list.files(., pattern = outcome_cat, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
     for (j in deepseek_files){
@@ -102,11 +113,14 @@ for (f in list.files(deepseek_results, full.names = T)){
     
     ## Merge all results
     
-    results_merge <- merge(biobert, qwen_all, by = c("Predicted_term", "Observed_term"), all = T) 
-    results_merge <- merge(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term"), all = T) %>% 
-      group_by(Predicted_term) %>% 
+    #results_merge <- merge(biobert, qwen_all, by = c("Predicted_term", "Observed_term"), all = T)
+    results_merge <- left_join(biobert, qwen_all, by = c("Predicted_term", "Observed_term")) 
+    #results_merge <- merge(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term"), all = T) %>% 
+    #  group_by(Predicted_term) %>% 
+    #  arrange(desc(Confidence_Deepseek), .by_group = T)
+    results_merge <- left_join(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term")) %>% 
+      group_by(Predicted_term) %>%
       arrange(desc(Confidence_Deepseek), .by_group = T)
-    
     results_merge_sig <- results_merge %>% filter(!is.na(Confidence_Qwen))
     
     results_merge_accept <- results_merge %>% filter(Decision_Deepseek == "ACCEPT")
@@ -123,9 +137,9 @@ for (f in list.files(deepseek_results, full.names = T)){
       dir.create(output_dir)
     }
     
-    output_file_full <- file.path(output_dir, paste(drug, "omim_faers", outcome_cat, "full.csv", sep = "_"))
-    output_file_sig <- file.path(output_dir, paste(drug, "omim_faers_LLM", outcome_cat, "sig.csv", sep = "_"))
-    output_file_accept <- file.path(output_dir, paste(drug, "omim_faers_LLM", outcome_cat, "accepted.csv", sep = "_"))
+    output_file_full <- file.path(output_dir, paste(drug, predicted, "faers", outcome_cat, "full.csv", sep = "_"))
+    output_file_sig <- file.path(output_dir, paste(drug, predicted, "faers_LLM", outcome_cat, "sig.csv", sep = "_"))
+    output_file_accept <- file.path(output_dir, paste(drug, predicted, "faers_LLM", outcome_cat, "accepted.csv", sep = "_"))
     
     fwrite(results_merge, output_file_full)
     fwrite(results_merge_sig, output_file_sig)

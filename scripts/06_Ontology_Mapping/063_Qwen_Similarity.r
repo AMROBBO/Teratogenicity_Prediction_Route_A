@@ -163,7 +163,7 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
 
 pull_model("qwen2.5:7b")
 
-for (f in list.files(input_dir, full.names = T)[35:length(list.files(input_dir, full.names = T))]){
+for (f in list.files(input_dir, full.names = T)){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
   file <- grep(paste(predicted, "faers", outcome_cat, "top_30.csv", sep = "_"), list.files(f, full.names = T), value = T)
