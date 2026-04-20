@@ -25,10 +25,12 @@ library(kableExtra)
 #load_dot_env("config.env")
 readRenviron(here("config.env"))
 
+interim_dir <- Sys.getenv("interimdatadir")
 base_dir <- Sys.getenv("processeddatadir")
 resultsdir <- Sys.getenv("docsdir")
 
 LLM_results_dir <- file.path(base_dir, "OMIM_FAERS_outcomes")
+term_counts <- file.path(interim_dir, "ontology_mapping/input_data")
 
 ```
 
@@ -61,6 +63,23 @@ LLM_results_dir <- file.path(base_dir, "OMIM_FAERS_outcomes")
     * Warfarin
 
 # Captopril
+
+```{r}
+#| label: Captopril term counts
+#| include: true
+#| echo: false
+
+captopril_count_omim <- nrow(read.csv(file.path(term_counts, "captopril/captopril_omim.csv")))
+captopril_count_faers_all <- nrow(fread(file.path(term_counts, "captopril/captopril_faers_all.csv")))
+captopril_count_faers_cong <- nrow(fread(file.path(term_counts, "captopril/captopril_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", captopril_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", captopril_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", captopril_count_faers_cong), "\n")
+
+```
+
+
 ## All outcomes
 
 ```{r}
@@ -96,6 +115,22 @@ kable(captopril_results) %>%
 ```
 
 # Methotrexate
+
+```{r}
+#| label: Methotrexate term counts
+#| include: true
+#| echo: false
+
+methotrexate_count_omim <- nrow(read.csv(file.path(term_counts, "methotrexate/methotrexate_omim.csv")))
+methotrexate_count_faers_all <- nrow(fread(file.path(term_counts, "methotrexate/methotrexate_faers_all.csv")))
+methotrexate_count_faers_cong <- nrow(fread(file.path(term_counts, "methotrexate/methotrexate_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", methotrexate_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", methotrexate_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", methotrexate_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
@@ -130,6 +165,22 @@ kable(methotrexate_results) %>%
 ```
 
 # Mycophenolate mofetil
+
+```{r}
+#| label: Mycophenolate mofetil term counts
+#| include: true
+#| echo: false
+
+mycophenolate_mofetil_count_omim <- nrow(read.csv(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_omim.csv")))
+mycophenolate_mofetil_count_faers_all <- nrow(fread(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_faers_all.csv")))
+mycophenolate_mofetil_count_faers_cong <- nrow(fread(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", mycophenolate_mofetil_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", mycophenolate_mofetil_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", mycophenolate_mofetil_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
@@ -165,6 +216,22 @@ kable(mycophenolate_mofetil_results) %>%
 ```
 
 # Thalidomide
+
+```{r}
+#| label: Thalidomide term counts
+#| include: true
+#| echo: false
+
+thalidomide_count_omim <- nrow(read.csv(file.path(term_counts, "thalidomide/thalidomide_omim.csv")))
+thalidomide_count_faers_all <- nrow(fread(file.path(term_counts, "thalidomide/thalidomide_faers_all.csv")))
+thalidomide_count_faers_cong <- nrow(fread(file.path(term_counts, "thalidomide/thalidomide_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", thalidomide_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", thalidomide_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", thalidomide_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
@@ -200,6 +267,22 @@ kable(thalidomide_results) %>%
 ```
 
 # Tretinoin
+
+```{r}
+#| label: Tretinoin term counts
+#| include: true
+#| echo: false
+
+tretinoin_count_omim <- nrow(read.csv(file.path(term_counts, "tretinoin/tretinoin_omim.csv")))
+tretinoin_count_faers_all <- nrow(fread(file.path(term_counts, "tretinoin/tretinoin_faers_all.csv")))
+tretinoin_count_faers_cong <- nrow(fread(file.path(term_counts, "tretinoin/tretinoin_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", tretinoin_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", tretinoin_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", tretinoin_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
@@ -235,6 +318,22 @@ kable(tretinoin_results) %>%
 ```
 
 # Valproate
+
+```{r}
+#| label: Valproate term counts
+#| include: true
+#| echo: false
+
+valproate_count_omim <- nrow(read.csv(file.path(term_counts, "valproate/valproate_omim.csv")))
+valproate_count_faers_all <- nrow(fread(file.path(term_counts, "valproate/valproate_faers_all.csv")))
+valproate_count_faers_cong <- nrow(fread(file.path(term_counts, "valproate/valproate_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", valproate_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", valproate_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", valproate_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
@@ -270,6 +369,22 @@ kable(valproate_results) %>%
 ```
 
 # Warfarin
+
+```{r}
+#| label: Warfarin term counts
+#| include: true
+#| echo: false
+
+warfarin_count_omim <- nrow(read.csv(file.path(term_counts, "warfarin/warfarin_omim.csv")))
+warfarin_count_faers_all <- nrow(fread(file.path(term_counts, "warfarin/warfarin_faers_all.csv")))
+warfarin_count_faers_cong <- nrow(fread(file.path(term_counts, "warfarin/warfarin_faers_cong.csv")))
+
+cat(paste("Number of OMIM Phenotypic Outcomes:", warfarin_count_omim), "\n")
+cat(paste("Number of FAERS Reported Outcomes (all):", warfarin_count_faers_all), "\n")
+cat(paste("Number of FAERS Reported Outcomes (congenital):", warfarin_count_faers_cong), "\n")
+
+```
+
 ## All outcomes
 
 ```{r}
