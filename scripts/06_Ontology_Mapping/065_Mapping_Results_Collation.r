@@ -37,8 +37,8 @@ input_dir <- file.path(interim_data, "ontology_mapping/output_data")
 #predicted <- "omim"
 predicted <- "gpmap"
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 output_base_dir <- file.path(processed_data, paste0(toupper(predicted), "_FAERS_outcomes"))
 

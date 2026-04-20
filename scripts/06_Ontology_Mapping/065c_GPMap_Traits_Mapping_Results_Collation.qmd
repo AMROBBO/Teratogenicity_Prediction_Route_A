@@ -6,6 +6,7 @@ format:
     html:
         toc: true
         toc-location: left
+        embed-resources: true
 ---
 
 ```{r}
@@ -39,9 +40,12 @@ LLM_results_dir <- file.path(base_dir, "GPMAP_FAERS_outcomes")
 **Observed outcomes** - FAERS adverse events associated with drugs. This dataset includes all outcomes and those that are pregnancy and congenitally related.
 
 ## The terms have been mapped in three steps:
-    1. Biobert model to calculate cosine similarity between GPMap and FAERS terms. Filtered for the top 30 most similar FAERS terms for each GPMap term.
-    2. Qwen2.5 model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. Those with a score of 0 were filtered out.
-    3. DeepSeek model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. Those with a score 0-1 were rejected.
+    1. Biobert model to calculate cosine similarity between GPMap and FAERS terms. 
+     -> Filtered for the top 30 most similar FAERS terms for each GPMap term.
+    2. Qwen2.5 model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. 
+     -> Those with a score of 0 were filtered out.
+    3. DeepSeek model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. 
+     -> Those with a score 0-1 were rejected.
 
 ## Confidence Score Interpretation:
     5: Exact or near-perfect conceptual match
@@ -306,8 +310,10 @@ kable(warfarin_results) %>%
 
 # Render
 ```{r}
+#| eval: false
+
 quarto::quarto_render(
-  "06_Ontology_Mapping/065c_GPMap_Mapping_Results_Collation.qmd",
+  "scripts/06_Ontology_Mapping/065c_GPMap_Traits_Mapping_Results_Collation.qmd",
   quarto_args = c("--output-dir", resultsdir)
 )
 ```

@@ -132,7 +132,7 @@ for (i in target_genes){
 
 # Betas for other variants
 
-  other_variants <- gene_output$associations[!gene_output$associations$snp_id %in% variant_betas$snp_id,]
+  other_variants <- gene_output$associations[!gene_output$associations$variant_id %in% variant_betas$variant_id,]
 
   other_variants$variant_type <- "other"
 
@@ -147,10 +147,10 @@ for (i in target_genes){
 # Assigning betas to variants
 #######################################################
   
-  colnames(variants)[1] <- "snp_id"
+  colnames(variants)[1] <- "variant_id"
 
   variants_assoc <- variants %>% 
-    full_join(variant_betas, by = "snp_id")
+    full_join(variant_betas, by = "variant_id")
 
 #######################################################
 # Cleaning up columns
@@ -162,7 +162,7 @@ for (i in target_genes){
 
   variants_assoc$drug_target <- drug_target
   
-  to_keep <- c("drug_target", "rsid.x", "snp_id", "snp", "chr.x", "bp.x", "ea", "oa", "ref_allele", "beta", 
+  to_keep <- c("drug_target", "rsid.x", "variant_id", "snp", "chr.x", "bp.x", "ea", "oa", "ref_allele", "beta", 
                "se", "p", "eaf", "min_p", "imputed", "variant_type", "display_snp.x",
                "flipped", "gene.x", "feature_type", "consequence", "cdna_position",
                "cds_position", "protein_position", "amino_acids", "codons", "impact", 

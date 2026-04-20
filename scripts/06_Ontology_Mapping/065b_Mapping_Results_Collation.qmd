@@ -306,8 +306,10 @@ kable(warfarin_results) %>%
 
 # Render
 ```{r}
+#| eval: false
+
 quarto::quarto_render(
-  "06_Ontology_Mapping/065b_Mapping_Results_Collation.qmd",
+  "scripts/06_Ontology_Mapping/065b_Mapping_Results_Collation.qmd",
   quarto_args = c("--output-dir", resultsdir)
 )
 ```
