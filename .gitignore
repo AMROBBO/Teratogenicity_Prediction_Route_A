@@ -59,3 +59,4 @@ config.env
 *_files/
 *_cache/
 .quarto/
+.positai

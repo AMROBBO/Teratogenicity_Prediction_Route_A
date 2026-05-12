@@ -166,7 +166,7 @@ SapBERT_from_PubMedBERT_fulltext_bf16_results
 # Render
 ```{r}
 quarto::quarto_render(
-  "05_Ontology_Mapping/052b_Biobert_Evaluation.qmd",
+  "07_Ontology_Mapping/072b_Biobert_Evaluation.qmd",
   quarto_args = c("--output-dir", resultsdir)
 )
 ```

@@ -1,11 +1,12 @@
 ---
-title: "Presenting Collated Ontology Terms - OMIM and FAERS Outcomes"
+title: "Presenting Collated Ontology Terms - Genotype-Phenotype Map and FAERS Outcomes"
 author: "Alice Robinson"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 format: 
     html:
         toc: true
         toc-location: left
+        embed-resources: true
 ---
 
 ```{r}
@@ -29,21 +30,24 @@ interim_dir <- Sys.getenv("interimdatadir")
 base_dir <- Sys.getenv("processeddatadir")
 resultsdir <- Sys.getenv("docsdir")
 
-LLM_results_dir <- file.path(base_dir, "OMIM_FAERS_outcomes")
+LLM_results_dir <- file.path(base_dir, "GPMAP_FAERS_outcomes")
 term_counts <- file.path(interim_dir, "ontology_mapping/input_data")
 
 ```
 
 # Mapped Predicted and Observed Drug outcomes
 
-**Predicted outcomes** - OMIM phenotpic outcomes resulting from genetic variation in drug target gene
+**Predicted outcomes** - Genotype-Phenotype Map traits colocalising with genetic variants associated with drug target gene
 
 **Observed outcomes** - FAERS adverse events associated with drugs. This dataset includes all outcomes and those that are pregnancy and congenitally related.
 
 ## The terms have been mapped in three steps:
-    1. Biobert model to calculate cosine similarity between OMIM and FAERS terms. Filtered for the top 30 most similar FAERS terms for each OMIM term.
-    2. Qwen2.5 model to generate a confidence score of 0-5 for each OMIM-FAERS term pair based on the closeness of the traits. Those with a score of 0 were filtered out.
-    3. DeepSeek model to generate a confidence score of 0-5 for each OMIM-FAERS term pair based on the closeness of the traits. Those with a score 0-1 were rejected.
+    1. Biobert model to calculate cosine similarity between GPMap and FAERS terms. 
+     -> Filtered for the top 30 most similar FAERS terms for each GPMap term.
+    2. Qwen2.5 model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. 
+     -> Those with a score of 0 were filtered out.
+    3. DeepSeek model to generate a confidence score of 0-5 for each GPMap-FAERS term pair based on the closeness of the traits. 
+     -> Those with a score 0-1 were rejected.
 
 ## Confidence Score Interpretation:
     5: Exact or near-perfect conceptual match
@@ -69,16 +73,15 @@ term_counts <- file.path(interim_dir, "ontology_mapping/input_data")
 #| include: true
 #| echo: false
 
-captopril_count_omim <- nrow(read.csv(file.path(term_counts, "captopril/captopril_omim.csv")))
+captopril_count_gpmap <- nrow(fread(file.path(term_counts, "captopril/captopril_gpmap.csv")))
 captopril_count_faers_all <- nrow(fread(file.path(term_counts, "captopril/captopril_faers_all.csv")))
 captopril_count_faers_cong <- nrow(fread(file.path(term_counts, "captopril/captopril_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", captopril_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", captopril_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", captopril_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", captopril_count_faers_cong), "\n")
 
 ```
-
 
 ## All outcomes
 
@@ -87,7 +90,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", captopril_count_fae
 #| include: true
 #| echo: false
 
-captopril_results_path <- file.path(LLM_results_dir, "captopril/all/captopril_omim_faers_LLM_all_accepted.csv")
+captopril_results_path <- file.path(LLM_results_dir, "captopril/all/captopril_gpmap_faers_LLM_all_accepted.csv")
 
 captopril_results <- fread(captopril_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -104,7 +107,7 @@ kable(captopril_results) %>%
 #| include: true
 #| echo: false
 
-captopril_results_path <- file.path(LLM_results_dir, "captopril/cong/captopril_omim_faers_LLM_cong_accepted.csv")
+captopril_results_path <- file.path(LLM_results_dir, "captopril/cong/captopril_gpmap_faers_LLM_cong_accepted.csv")
 
 captopril_results <- fread(captopril_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -121,15 +124,16 @@ kable(captopril_results) %>%
 #| include: true
 #| echo: false
 
-methotrexate_count_omim <- nrow(read.csv(file.path(term_counts, "methotrexate/methotrexate_omim.csv")))
+methotrexate_count_gpmap <- nrow(fread(file.path(term_counts, "methotrexate/methotrexate_gpmap.csv")))
 methotrexate_count_faers_all <- nrow(fread(file.path(term_counts, "methotrexate/methotrexate_faers_all.csv")))
 methotrexate_count_faers_cong <- nrow(fread(file.path(term_counts, "methotrexate/methotrexate_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", methotrexate_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", methotrexate_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", methotrexate_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", methotrexate_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -138,7 +142,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", methotrexate_count_
 #| include: true
 #| echo: false
 
-methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/all/methotrexate_omim_faers_LLM_all_accepted.csv")
+methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/all/methotrexate_gpmap_faers_LLM_all_accepted.csv")
 
 methotrexate_results <- fread(methotrexate_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -154,7 +158,7 @@ kable(methotrexate_results) %>%
 #| include: true
 #| echo: false
 
-methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/cong/methotrexate_omim_faers_LLM_cong_accepted.csv")
+methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/cong/methotrexate_gpmap_faers_LLM_cong_accepted.csv")
 
 methotrexate_results <- fread(methotrexate_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -171,15 +175,16 @@ kable(methotrexate_results) %>%
 #| include: true
 #| echo: false
 
-mycophenolate_mofetil_count_omim <- nrow(read.csv(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_omim.csv")))
+mycophenolate_mofetil_count_gpmap <- nrow(fread(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_gpmap.csv")))
 mycophenolate_mofetil_count_faers_all <- nrow(fread(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_faers_all.csv")))
 mycophenolate_mofetil_count_faers_cong <- nrow(fread(file.path(term_counts, "mycophenolate_mofetil/mycophenolate_mofetil_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", mycophenolate_mofetil_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", mycophenolate_mofetil_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", mycophenolate_mofetil_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", mycophenolate_mofetil_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -188,7 +193,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", mycophenolate_mofet
 #| include: true
 #| echo: false
 
-mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/all/mycophenolate_mofetil_omim_faers_LLM_all_accepted.csv")
+mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/all/mycophenolate_mofetil_gpmap_faers_LLM_all_accepted.csv")
 
 mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -205,7 +210,7 @@ kable(mycophenolate_mofetil_results) %>%
 #| include: true
 #| echo: false
 
-mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/cong/mycophenolate_mofetil_omim_faers_LLM_cong_accepted.csv")
+mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/cong/mycophenolate_mofetil_gpmap_faers_LLM_cong_accepted.csv")
 
 mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
     select(Predicted_term, Observed_term)
@@ -222,15 +227,16 @@ kable(mycophenolate_mofetil_results) %>%
 #| include: true
 #| echo: false
 
-thalidomide_count_omim <- nrow(read.csv(file.path(term_counts, "thalidomide/thalidomide_omim.csv")))
+thalidomide_count_gpmap <- nrow(fread(file.path(term_counts, "thalidomide/thalidomide_gpmap.csv")))
 thalidomide_count_faers_all <- nrow(fread(file.path(term_counts, "thalidomide/thalidomide_faers_all.csv")))
 thalidomide_count_faers_cong <- nrow(fread(file.path(term_counts, "thalidomide/thalidomide_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", thalidomide_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", thalidomide_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", thalidomide_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", thalidomide_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -239,7 +245,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", thalidomide_count_f
 #| include: true
 #| echo: false
 
-thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/all/thalidomide_omim_faers_LLM_all_accepted.csv")
+thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/all/thalidomide_gpmap_faers_LLM_all_accepted.csv")
 
 thalidomide_results <- fread(thalidomide_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -256,7 +262,7 @@ kable(thalidomide_results) %>%
 #| include: true
 #| echo: false
 
-thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/cong/thalidomide_omim_faers_LLM_cong_accepted.csv")
+thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/cong/thalidomide_gpmap_faers_LLM_cong_accepted.csv")
 
 thalidomide_results <- fread(thalidomide_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -273,15 +279,16 @@ kable(thalidomide_results) %>%
 #| include: true
 #| echo: false
 
-tretinoin_count_omim <- nrow(read.csv(file.path(term_counts, "tretinoin/tretinoin_omim.csv")))
+tretinoin_count_gpmap <- nrow(fread(file.path(term_counts, "tretinoin/tretinoin_gpmap.csv")))
 tretinoin_count_faers_all <- nrow(fread(file.path(term_counts, "tretinoin/tretinoin_faers_all.csv")))
 tretinoin_count_faers_cong <- nrow(fread(file.path(term_counts, "tretinoin/tretinoin_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", tretinoin_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", tretinoin_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", tretinoin_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", tretinoin_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -290,7 +297,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", tretinoin_count_fae
 #| include: true
 #| echo: false
 
-tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/all/tretinoin_omim_faers_LLM_all_accepted.csv")
+tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/all/tretinoin_gpmap_faers_LLM_all_accepted.csv")
 
 tretinoin_results <- fread(tretinoin_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -307,7 +314,7 @@ kable(tretinoin_results) %>%
 #| include: true
 #| echo: false
 
-tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/cong/tretinoin_omim_faers_LLM_cong_accepted.csv")
+tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/cong/tretinoin_gpmap_faers_LLM_cong_accepted.csv")
 
 tretinoin_results <- fread(tretinoin_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -324,15 +331,16 @@ kable(tretinoin_results) %>%
 #| include: true
 #| echo: false
 
-valproate_count_omim <- nrow(read.csv(file.path(term_counts, "valproate/valproate_omim.csv")))
+valproate_count_gpmap <- nrow(fread(file.path(term_counts, "valproate/valproate_gpmap.csv")))
 valproate_count_faers_all <- nrow(fread(file.path(term_counts, "valproate/valproate_faers_all.csv")))
 valproate_count_faers_cong <- nrow(fread(file.path(term_counts, "valproate/valproate_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", valproate_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", valproate_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", valproate_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", valproate_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -341,7 +349,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", valproate_count_fae
 #| include: true
 #| echo: false
 
-valproate_results_path <- file.path(LLM_results_dir, "valproate/all/valproate_omim_faers_LLM_all_accepted.csv")
+valproate_results_path <- file.path(LLM_results_dir, "valproate/all/valproate_gpmap_faers_LLM_all_accepted.csv")
 
 valproate_results <- fread(valproate_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -358,7 +366,7 @@ kable(valproate_results) %>%
 #| include: true
 #| echo: false
 
-valproate_results_path <- file.path(LLM_results_dir, "valproate/cong/valproate_omim_faers_LLM_cong_accepted.csv")
+valproate_results_path <- file.path(LLM_results_dir, "valproate/cong/valproate_gpmap_faers_LLM_cong_accepted.csv")
 
 valproate_results <- fread(valproate_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -375,15 +383,16 @@ kable(valproate_results) %>%
 #| include: true
 #| echo: false
 
-warfarin_count_omim <- nrow(read.csv(file.path(term_counts, "warfarin/warfarin_omim.csv")))
+warfarin_count_gpmap <- nrow(fread(file.path(term_counts, "warfarin/warfarin_gpmap.csv")))
 warfarin_count_faers_all <- nrow(fread(file.path(term_counts, "warfarin/warfarin_faers_all.csv")))
 warfarin_count_faers_cong <- nrow(fread(file.path(term_counts, "warfarin/warfarin_faers_cong.csv")))
 
-cat(paste("Number of OMIM Phenotypic Outcomes:", warfarin_count_omim), "\n")
+cat(paste("Number of Genotype-Phenotype Map Traits:", warfarin_count_gpmap), "\n")
 cat(paste("Number of FAERS Reported Outcomes (all):", warfarin_count_faers_all), "\n")
 cat(paste("Number of FAERS Reported Outcomes (congenital):", warfarin_count_faers_cong), "\n")
 
 ```
+
 
 ## All outcomes
 
@@ -392,7 +401,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", warfarin_count_faer
 #| include: true
 #| echo: false
 
-warfarin_results_path <- file.path(LLM_results_dir, "warfarin/all/warfarin_omim_faers_LLM_all_accepted.csv")
+warfarin_results_path <- file.path(LLM_results_dir, "warfarin/all/warfarin_gpmap_faers_LLM_all_accepted.csv")
 
 warfarin_results <- fread(warfarin_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -409,7 +418,7 @@ kable(warfarin_results) %>%
 #| include: true
 #| echo: false
 
-warfarin_results_path <- file.path(LLM_results_dir, "warfarin/cong/warfarin_omim_faers_LLM_cong_accepted.csv")
+warfarin_results_path <- file.path(LLM_results_dir, "warfarin/cong/warfarin_gpmap_faers_LLM_cong_accepted.csv")
 
 warfarin_results <- fread(warfarin_results_path) %>%
      select(Predicted_term, Observed_term)
@@ -424,7 +433,7 @@ kable(warfarin_results) %>%
 #| eval: false
 
 quarto::quarto_render(
-  "scripts/06_Ontology_Mapping/065b_Mapping_Results_Collation.qmd",
+  "scripts/07_Ontology_Mapping/075c_GPMap_Traits_Mapping_Results_Collation.qmd",
   quarto_args = c("--output-dir", resultsdir)
 )
 ```

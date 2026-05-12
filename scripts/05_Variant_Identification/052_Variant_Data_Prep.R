@@ -7,6 +7,8 @@
 #######################################################
 
 library(dotenv)
+library(data.table)
+library(dplyr)
 
 #######################################################
 # Initialising file paths
