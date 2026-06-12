@@ -46,6 +46,10 @@ for (i in unique(smpc_outcomes$Drug)){
   drug_se <- unique(drug_se)
   colnames(drug_se)[2] <- "Outcome"
   
+  if (i == "Folate"){
+    i <- "folic_acid"
+  }
+  
   output_dir <- file.path(emc_output_dir, str_replace(tolower(i), " ", "_"))
   if (!dir.exists(output_dir)) {
     dir.create(output_dir)

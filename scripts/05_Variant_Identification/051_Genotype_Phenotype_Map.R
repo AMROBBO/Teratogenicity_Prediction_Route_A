@@ -85,7 +85,8 @@ for (i in target_genes){
   if (!is.null(coloc_groups)) { 
     
     common_betas <- coloc_groups %>% 
-      filter(gene == drug_target)
+      filter(gene == drug_target) %>% 
+      filter(data_type != "Splice Variant", data_type != "Methylation")
     
     if (nrow(common_betas) > 0){
     

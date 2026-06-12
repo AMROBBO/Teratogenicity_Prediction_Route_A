@@ -2,6 +2,9 @@
 # Association data for drug target variants and MR PREG Outcomes
 ##
 
+## Use primary targets only
+
+
 #######################################################
 # Load in libraries
 #######################################################
@@ -32,3 +35,5 @@ MR_PREG <- fread(file.path(raw_data, "predicted_outcomes/MR_PREG/ma_out_dat.txt"
 #######################################################
 
 variant_data <- fread(file.path(interim_data, "predicted_outcomes/G_P_Map_Variants/Drug_Target_Variant.csv"))
+
+# filter p values, and NA values
