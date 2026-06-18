@@ -104,6 +104,7 @@ outcome_table$openGWAS_outcome <- gsub('""', '"', outcome_table$openGWAS_outcome
 
 for(drug in unique(targets$Drug)){
   
+  message("Processing drug: ", drug)
   #######################################################
   # Identify Exposure (Drug Target)
   #######################################################
@@ -201,9 +202,38 @@ for(drug in unique(targets$Drug)){
   }
   
   # Outcome Association data
-  drug_outcome_assoc <- extract_outcome_data(unique(exposure_clumped$SNP), unique(drug_outcomes$id)) %>% 
-    as.data.frame()
   
+  # Chunking outcomes for outcome extraction
+  outcomes <- unique(drug_outcomes$id)
+  chunk_size <- 10
+  outcome_chunks <- split(
+    outcomes, 
+    ceiling(seq_along(outcomes) / chunk_size)
+  )
+  
+  results <- vector("list", length(outcome_chunks))
+  
+  for (i in seq_along(outcome_chunks)){
+    message("Processing chunk ", i, "/", length(outcome_chunks))
+    
+    res <- try(
+      extract_outcome_data(
+        snps = unique(exposure_clumped$SNP),
+        outcomes = outcome_chunks[[i]]
+      ),
+      silent = TRUE
+    )
+    
+    if (inherits(res, "try-error")){
+      message("Chunk ", i, " failed")
+      next
+    }
+    
+    results[[i]] <- res
+  }
+  
+  drug_outcome_assoc <- bind_rows(results)
+
   #######################################################
   # Harmonise
   #######################################################
