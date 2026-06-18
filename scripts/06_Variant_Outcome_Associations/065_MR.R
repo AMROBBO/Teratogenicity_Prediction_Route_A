@@ -62,7 +62,7 @@ outcome_data <- fread(outcome_file) %>%
 
 # For each drug
 
-drug <- unique(drug_targets$Drug)[7]
+drug <- unique(drug_targets$Drug)[32]
 
 # What are the indications
 indications <- drug_indications %>% 
@@ -92,11 +92,11 @@ exposure_SNPs <- exposure_data[grep(target_list, exposure_data$drug_target)] %>%
 SNP_list <- paste0("^", paste(unique(exposure_SNPs$rsid.x), collapse = "$|^"), "$")
   
 # Extract association data for all SNPs and all available outcomes
-  
+
 outcome_SNPs <- outcome_data[grep(SNP_list, outcome_data$rsid),] %>% 
   as.data.frame()
   
-  # Format data
+# Format data
   
 exposure_formatted <- exposure_SNPs %>% 
   format_data(
@@ -162,7 +162,7 @@ ggplot(mr_res,
            size = -log10(pval),
            colour = indication)) +
   geom_point() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   scale_size_continuous(name = "-log10(P)") +
   labs(
     x = "Outcome",
@@ -176,7 +176,7 @@ ggplot(mr_res,
 ggplot(mr_res,
        aes(x = outcome,
            y = exposure,
-           fill = b)) +
+           fill = -log10(pval))) +
   geom_tile() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
