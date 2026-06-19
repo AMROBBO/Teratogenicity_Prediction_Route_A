@@ -1,0 +1,559 @@
+---
+title: "MR Results - Drug Bank Primary Indications and openGWAS outcomes"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+        fig-width: 8
+        fig-height: 10
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(jsonlite)
+library(dplyr)
+library(here)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+library(ieugwasr)
+library(TwoSampleMR)
+library(ggplot2)
+
+# Read environment file
+
+readRenviron(here("config.env"))
+
+interim_dir <- Sys.getenv("interimdatadir")
+processed_dir <- Sys.getenv("processeddatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+exposure_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_input/exposure_associations.csv")
+outcome_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_input/outcome_associations.csv")
+targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
+indications_file <- file.path(interim_dir, "reported_outcomes/Drug_Bank_outcomes/Drug_Bank_Indications.csv")
+MR_res_dir <- file.path(processed_dir, "Primary_indications_MR_Results")
+output_dir <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_output")
+
+```
+
+
+```{r}
+#| label: Reading in data
+#| include: false
+
+# Target of each drug
+drug_targets <- fread(targets_file) %>% 
+  filter(Primary == "Primary")
+
+# Indication of each drug
+drug_indications <- fread(indications_file) %>% 
+  filter(`Approval Level` == "Prescription")
+
+# Normalise some drug naming
+drug_indications[which(drug_indications$Drug == "Valproate"), "Drug"] <- "Valproic acid"
+
+# Drug target assocation data
+exposure_data <- fread(exposure_file)
+
+# Outcome association data
+outcome_data <- fread(outcome_file) %>% 
+  select("indication", "openGWAS_outcome", "id", "chr", "position", "rsid", 
+         "ea", "nea", "eaf", "beta", "se", "p", "n")
+
+MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
+
+```
+
+# Drugs of Interest:
+    * Captopril
+    * Methotrexate
+    * Mycophenolate mofetil
+    * Thalidomide
+    * Tretinoin
+    * Valproate
+    * Warfarin
+
+# Captopril
+
+## Primary Indications
+```{r}
+#| label: Captopril_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Captopril"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Captopril Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Captopril openGWAS Outcomes",
+)
+
+```
+
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Captopril_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Hypertension", "Heart failure", "Diabetic nephropathy", "Heart failure"),
+  opengwas_id = c("ieu-b-5144", "ebi-a-GCST009541", "ebi-a-GCST90018832", "ebi-a-GCST009541"),
+  sample_size = c("462826", "977323", "452280", "977323"),
+  outcome_type = c("Binary", "NA", "NA", "NA")
+)
+
+knitr::kable(
+  studies,
+  caption = "Captopril Chosen OpenGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Captopril_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Captopril Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis Results
+```{r}
+#| label: Captopril_MR
+#| include: false
+#| echo: false
+
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
+
+mr_res <- MR_res_files[grep("Captopril", MR_res_files)] %>% 
+  fread()
+
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Captopril_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio (log scale)", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Methotrexate
+
+## Primary Indications
+```{r}
+#| label: Methotrexate_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Methotrexate"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Methotrexate Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Methotrexate openGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Methotrexate_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Methotrexate Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis
+
+
+
+# Mycophenolate mofetil
+
+## Primary Indications
+According to DrugBank, Mycophenolate mofetil is used for the following indications:
+
+ - Transplant organ rejection
+
+However, it is reported as being used as Adjunct therapy, and has therefore beeen filtered out as not the primary drug used for this infication.
+Therefore, there are no primary indications for this drug, and no associated outcomes in openGWAS. This is an example of a drug where the MR analysis is not informative, as the drug is not used as a primary treatment for any indication.
+
+
+# Thalidomide
+
+## Primary Indications
+
+```{r}
+#| label: Thalidomide_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Thalidomide"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Thalidomide Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Thalidomide openGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Thalidomide_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Thalidomide Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis
+
+
+# Tretinoin
+
+## Primary Indications
+
+```{r}
+#| label: Tretinoin_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Tretinoin"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Tretinoin Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Tretinoin openGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Tretinoin_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Tretinoin Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis
+
+
+# Valproate
+
+## Primary Indications
+
+```{r}
+#| label: Valproate_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Valproic acid"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Valproate Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Valproate openGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Valproate_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Valproate Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis
+
+
+# Warfarin
+
+## Primary Indications
+
+```{r}
+#| label: Warfarin_Primary_Indications
+#| include: true
+#| echo: false
+
+drug <- "Warfarin"
+
+# What are the indications
+indications <- drug_indications %>% 
+  filter(Drug == drug)
+
+indication_list <- paste0("^", paste(indications$Indication, collapse = "$|^"), "$")
+
+knitr::kable(
+  indications,
+  caption = "Warfarin Primary Indications",
+)
+
+opengwas_outcomes <- outcome_data
+opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
+opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
+  select(c("indication","openGWAS_outcome")) %>% 
+  unique()
+
+knitr::kable(
+  opengwas_outcomes,
+  caption = "Warfarin openGWAS Outcomes",
+)
+
+```
+
+## Targets
+```{r}
+#| label: Warfarin_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Warfarin Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+
+## MR Analysis
+
+
+```{r}
+#| eval: false
+#| include: false
+
+quarto::quarto_render(
+  "scripts/06_Variant_Outcome_Associations/066_MR_Plotting.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
+```
