@@ -13,7 +13,8 @@
 # Load in libraries
 #######################################################
 
-#pak::pak("NightingaleHealth/ggforestplot")
+pak::pak("NightingaleHealth/ggforestplot")
+pak::pak("MRCIEU/gpmapr")
 
 library(dotenv)
 library(dplyr)
@@ -92,7 +93,7 @@ variants <- variants %>%
 
 indications <- indications %>% 
   filter(`Approval Level` == "Prescription")
-indications[which(indications$Drug == "Valproate"), "Drug"] <- "Valproic acid" # Normalise some drug naming
+indications[which(indications$Drug == "Valproate"), "Drug"] <- "Valproic_acid" # Normalise some drug naming
 
 # Mapped outcomes - correcting some formatting
 
@@ -125,6 +126,11 @@ for(drug in unique(targets$Drug)){
   # Associated Variants
   drug_variants <- variants[grep(drug_targets_list, variants$drug_target),] %>% 
     as.data.frame()
+  
+  if (nrow(drug_variants) == 0){
+    message("No variants for drug ", drug)
+    next
+  }
   
   # Format data
   exposure_data <- drug_variants %>% 
@@ -198,6 +204,7 @@ for(drug in unique(targets$Drug)){
   # Only continue if there is enough data
   
   if (nrow(exposure_clumped) == 0 | nrow(drug_outcomes) == 0){
+    message(drug, " is missing Instruments/Indications")
     next
   }
   
@@ -286,24 +293,4 @@ for(drug in unique(targets$Drug)){
   
   fwrite(mr_res, output_path)
 }
-
-  # Plot
-
-  mr_sing <- mr_res %>% 
-    filter(id.outcome == "ieu-b-5144")
-
-
-  ggforestplot::forestplot(
-    df = mr_sing,
-    name = id.exposure,
-    estimate = b,
-    pvalue = pval,
-    psignif = 0.05,
-    logodds = TRUE,
-    colour = Target,
-    title = "Associations to metabolic traits",
-    xlab = "1-SD increment in cardiometabolic trait
-  per 1-SD increment in biomarker concentration"
-  )
-
   
