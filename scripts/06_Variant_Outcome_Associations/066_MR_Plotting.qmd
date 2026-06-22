@@ -40,7 +40,6 @@ outcome_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Ma
 targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
 indications_file <- file.path(interim_dir, "reported_outcomes/Drug_Bank_outcomes/Drug_Bank_Indications.csv")
 MR_res_dir <- file.path(processed_dir, "Primary_indications_MR_Results")
-output_dir <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_output")
 
 ```
 
@@ -125,8 +124,9 @@ studies <- data.table(
   indication = unique(indications$Indication),
   opengwas_outcome = c("Hypertension", "Heart failure", "Diabetic nephropathy", "Heart failure"),
   opengwas_id = c("ieu-b-5144", "ebi-a-GCST009541", "ebi-a-GCST90018832", "ebi-a-GCST009541"),
-  sample_size = c("462826", "977323", "452280", "977323"),
-  outcome_type = c("Binary", "NA", "NA", "NA")
+  sample_size = c("462,826", "977,323", "452,280", "977,323"),
+  ncases = c("133,680", "47,309", "1,032", "47,309"),
+  outcome_type = c("Binary", "Binary", "Binary", "Binary")
 )
 
 knitr::kable(
@@ -226,13 +226,13 @@ ggplot(plot_df,
   
   scale_x_log10() +
   
-  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
 
   scale_colour_manual(values = gene_cols) +
   
   theme_bw() +
   
-  labs(x = "Odds Ratio (log scale)", y = "Drug Target Measure", colour = "Drug Target")
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
 
 ```
 
@@ -271,6 +271,46 @@ knitr::kable(
 
 ```
 
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Methotrexate_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Psoriasis vulgaris", "Mature T/NK-cell lymphomas", "Rheumatoid arthritis",
+                       "Juvenile rheumatoid arthritis", "Psoriasis vulgaris", "Head and neck cancer",
+                       "Malignant lymphoma", "Meningitis"),
+  opengwas_id = c("ebi-a-GCST90018907", "finn-b-CD2_TNK_LYMPHOMA", "ebi-a-GCST90018910",
+                  "ebi-a-GCST90018873", "ebi-a-GCST90018907", "ieu-b-4912", "ebi-a-GCST90018878",
+                  "finn-b-MENINGITIS"),
+  sample_size = c("483174", "150 (ncase)", "417256", "409217", "483174", "373122", "490803",
+                  "770 (ncase)"),
+  outcome_type = c("Binary", "Binary", "Binary", "Binary", "Binary", "Binary", "Binary", "Binary")
+)
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Psoriasis vulgaris", "Mature T/NK-cell lymphomas", "Rheumatoid arthritis",
+                       "Juvenile rheumatoid arthritis", "Psoriasis vulgaris", "Head and neck cancer",
+                       "Malignant lymphoma", "Meningitis"),
+  opengwas_id = c("ebi-a-GCST90018907", "finn-b-CD2_TNK_LYMPHOMA", "ebi-a-GCST90018910",
+                  "ebi-a-GCST90018873", "ebi-a-GCST90018907", "ieu-b-4912", "ebi-a-GCST90018878",
+                  "finn-b-MENINGITIS"),
+  sample_size = c("483,174", "NA", "417,256", "409,217", "483,174", "373,122", "490,803",
+                  "NA"),
+  ncases = c("5,072", "150", "8,255", "216", "5,072", "1,106", "3,546", "770"),
+  outcome_type = c("Binary", "Binary", "Binary", "Binary", "Binary", "Binary", "Binary", "Binary")
+)
+
+knitr::kable(
+  studies,
+  caption = "Methotrexate Chosen OpenGWAS Outcomes",
+)
+
+```
+
 ## Targets
 ```{r}
 #| label: Methotrexate_Targets
@@ -292,10 +332,85 @@ knitr::kable(
 target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
 ```
 
+## MR Analysis Results
+```{r}
+#| label: Methotrexate_MR
+#| include: false
+#| echo: false
 
-## MR Analysis
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
 
+mr_res <- MR_res_files[grep("Methotrexate", MR_res_files)] %>% 
+  fread()
 
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Methotrexate_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme(axis.text.y = element_text(size = 6)) +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
 
 # Mycophenolate mofetil
 
@@ -304,8 +419,8 @@ According to DrugBank, Mycophenolate mofetil is used for the following indicatio
 
  - Transplant organ rejection
 
-However, it is reported as being used as Adjunct therapy, and has therefore beeen filtered out as not the primary drug used for this infication.
-Therefore, there are no primary indications for this drug, and no associated outcomes in openGWAS. This is an example of a drug where the MR analysis is not informative, as the drug is not used as a primary treatment for any indication.
+However, it is reported as being used as Adjunct therapy, and has therefore been filtered out as not the primary drug used for this indication.
+Therefore, there are no primary indications for this drug, and no associated outcomes in openGWAS. 
 
 
 # Thalidomide
@@ -343,6 +458,28 @@ knitr::kable(
 
 ```
 
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Thalidomide_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Erythema nodosum", "Erythema nodosum", "Erythema nodosum"),
+  opengwas_id = c("finn-b-L12_ERYTHEMANODOSUM", "finn-b-L12_ERYTHEMANODOSUM", "finn-b-L12_ERYTHEMANODOSUM"),
+  sample_size = c("NA", "NA", "NA"),
+  ncases = c("433", "433", "433"),
+  outcome_type = c("Binary", "Binary", "Binary")
+)
+
+knitr::kable(
+  studies,
+  caption = "Thalidomide Chosen OpenGWAS Outcomes",
+)
+
+```
+
 ## Targets
 ```{r}
 #| label: Thalidomide_Targets
@@ -365,7 +502,83 @@ target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
 ```
 
 
-## MR Analysis
+## MR Analysis Results
+```{r}
+#| label: Thalidomide_MR
+#| include: false
+#| echo: false
+
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
+
+mr_res <- MR_res_files[grep("Thalidomide", MR_res_files)] %>% 
+  fread()
+
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Thalidomide_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
 
 
 # Tretinoin
@@ -403,6 +616,28 @@ knitr::kable(
 
 ```
 
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Tretinoin_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Acne vulgaris", "Acute myeloid leukaemia"),
+  opengwas_id = c("finn-b-L12_ACNE_VULGARIS", "finn-b-C3_AML"),
+  sample_size = c("NA", "NA"),
+  ncases = c("1092","90"),
+  outcome_type = c("Binary", "Binary")
+)
+
+knitr::kable(
+  studies,
+  caption = "Tretinoin Chosen OpenGWAS Outcomes",
+)
+
+```
+
 ## Targets
 ```{r}
 #| label: Tretinoin_Targets
@@ -425,7 +660,83 @@ target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
 ```
 
 
-## MR Analysis
+## MR Analysis Results
+```{r}
+#| label: Tretinoin_MR
+#| include: false
+#| echo: false
+
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
+
+mr_res <- MR_res_files[grep("Tretinoin", MR_res_files)] %>% 
+  fread()
+
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Tretinoin_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
 
 
 # Valproate
@@ -463,6 +774,28 @@ knitr::kable(
 
 ```
 
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Valproate_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Epilepsy", "Manic episode", "Epilepsy", "Diagnoses - main ICD10: G43 Migraine"),
+  opengwas_id = c("ebi-a-GCST90018840", "finn-b-F5_MANIA", "ebi-a-GCST90018840", "ukb-d-G43"),
+  sample_size = c("458,310", "NA", "458,310", "361,194"),
+  ncases = c("4,382", "631", "4,382", "1,072"),
+  outcome_type = c("Binary", "Binary", "Binary", "Binary")
+)
+
+knitr::kable(
+  studies,
+  caption = "Valproate Chosen OpenGWAS Outcomes",
+)
+
+```
+
 ## Targets
 ```{r}
 #| label: Valproate_Targets
@@ -484,8 +817,83 @@ knitr::kable(
 target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
 ```
 
+## MR Analysis Results
+```{r}
+#| label: Valproate_MR
+#| include: false
+#| echo: false
 
-## MR Analysis
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
+
+mr_res <- MR_res_files[grep("Valproic acid", MR_res_files)] %>% 
+  fread()
+
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Valproate_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
 
 
 # Warfarin
@@ -523,6 +931,29 @@ knitr::kable(
 
 ```
 
+## Chosen OpenGWAS Outcomes
+```{r}
+#| label: Warfarin_Chosen_OpenGWAS_Outcomes
+#| include: true
+#| echo: false
+
+studies <- data.table(
+  indication = unique(indications$Indication),
+  opengwas_outcome = c("Non-cancer illness code, self-reported: deep venous thrombosis (dvt)", "Venous thromboembolism",
+                       "Pulmonary embolism"),
+  opengwas_id = c("ukb-b-12040", "ukb-d-I9_VTE", "finn-b-I9_PULMEMB"),
+  sample_size = c("462,933", "361,194", "NA"),
+  ncases = c("9,241", "4,620", "4,185"),
+  outcome_type = c("Binary", "Binary", "Binary")
+)
+
+knitr::kable(
+  studies,
+  caption = "Warfarin Chosen OpenGWAS Outcomes",
+)
+
+```
+
 ## Targets
 ```{r}
 #| label: Warfarin_Targets
@@ -544,8 +975,83 @@ knitr::kable(
 target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
 ```
 
+## MR Analysis Results
+```{r}
+#| label: Warfarin_MR
+#| include: false
+#| echo: false
 
-## MR Analysis
+chosen_outcomes <- paste0("^",
+                    paste(unique(studies$opengwas_id), collapse = "$|^"),
+                    "$")
+
+mr_res <- MR_res_files[grep("Warfarin", MR_res_files)] %>% 
+  fread()
+
+mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
+  as.data.frame()
+
+plot_df <- mr_res_plot %>% 
+  mutate(
+    OR = exp(b),
+    lower = exp(b - 1.96 * se),
+    upper = exp(b + 1.96 * se),
+    outcome = factor(openGWAS_outcome),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+```{r}
+#| label: Warfarin_MR_Plot
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(plot_df,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
 
 
 ```{r}
