@@ -22,8 +22,8 @@ load_dot_env("config.env")
 
 interim_data <- Sys.getenv("interimdatadir")
 
-input_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/2_Extracted_Outcomes")
-output_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/3_Adjudicated_Outcomes")
+input_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/2_Extracted_Outcomes")
+output_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/3_Adjudicated_Outcomes")
 
 #######################################################
 # Initialise model
@@ -35,7 +35,7 @@ pull_model("deepseek-r1:32b")
 # Assigning Data Source Options
 #######################################################
 
-dataset <- "Reprotox reports"
+dataset <- "TERIS reports"
 
 #######################################################
 # Creating Confidence Prompt + Query Function

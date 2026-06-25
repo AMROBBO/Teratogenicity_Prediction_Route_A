@@ -3,7 +3,7 @@
 # into one dataset per drug
 ##
 # As the LLMs do not have a 100% regular output, some chunks had to be rerun through
-# 02d2_Outcome_Extraction to produce an output that included a valid json format
+# 02da2_Outcome_Extraction to produce an output that included a valid json format
 ##
 
 #######################################################
@@ -95,6 +95,8 @@ for (f in adjudicating_outcomes){
     # Extract drug name
     drug <- toupper(obj$Drug)
     drug <- gsub(" ", "_", drug)
+    drug <- gsub(",", "", drug)
+    drug <- gsub("__", "_", drug)
     
     if(length(drug) == 0){
       drug <- drug_name

@@ -1,5 +1,5 @@
 ##
-# Reading in Reprotox Reports as PDFs, cleaning and formatting.
+# Reading in TERIS Reports as PDFs, cleaning and formatting.
 #
 # Breaking down the text into chunks, removing headers, page numbers, fixing 
 # breaks in words and sentences and reformatting some of the structure to help 
@@ -27,8 +27,8 @@ load_dot_env("config.env")
 raw_data <- Sys.getenv("rawdatadir")
 interim_data <- Sys.getenv("interimdatadir")
 
-input_dir <- file.path(raw_data, "reported_outcomes/Reprotox")
-output_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/1_Cleaned_PDFs")
+input_dir <- file.path(raw_data, "reported_outcomes/TERIS")
+output_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/1_Cleaned_PDFs")
 
 #######################################################
 # Initialise Model
@@ -40,7 +40,7 @@ pull_model("qwen2.5:14b")
 # Assigning Data Source Options
 #######################################################
 
-dataset <- "Reprotox reports"
+dataset <- "TERIS reports"
 
 #######################################################
 # SubTitles
@@ -49,51 +49,30 @@ dataset <- "Reprotox reports"
 # Common subtitles within the Monographs which will be used to break the text
 # down into manageable chunks
 
-subtitles <- c("Description",
-               "Pregnancy",
-               "Experimental animal studies",
-               "Experimental animal development",
-               "Experimental animal pregnancy studies",
-               "Pregnancy in experimental animals",
-               "Human reports on folate deficiency",
-               "Malformations",
-               "Congenital malformations",
-               "Pregnancy Registry",
-               "Human pregnancy reports",
-               "Human pregnancy effects",
-               "Human pregnancy - case reports",
-               "Human pregnancy - controlled studies",
-               "Malformations in human pregnancy reports",
-               "Human pregnancy",
-               "Other pregnancy outcomes",
-               "Spontaneous abortion",
-               "Miscarriage",
-               "Later pregnancy effects",
-               "Human reports",
-               "Lactation",
-               "Lactation and reproduction",
-               "Female Reproduction",
-               "Male reproduction",
-               "Reproduction",
-               "Male sexual function",
-               "Childhood development and illness",
-               "Childhood development",
-               "Recommendations and mandatory fortification",
-               "Environmental exposures",
-               "Tocolytic use",
-               "Adverse effects",
-               "Drug monitoring",
-               "Offspring of parents with thalidomide embryopathy",
-               "Reproductive organ effects",
-               "Meta-analyses",
-               "Neurodevelopmental studies",
-               "Neurodevelopment",
-               "Vitamin supplementation",
-               "Menstrual disorders",
-               "Selected References",
-               "Selected references",
-               "Selected References \\(not all studies are cited in the summary\\)"
-               )
+subtitles <- c(
+  "Summary of Available Literature:",
+  "MAJOR CONGENITAL ANOMALIES",
+  "PREGNANCY AND NEONATAL OUTCOMES",
+  "NEURODEVELOPMENTAL OUTCOMES",
+  "ANIMAL TERATOLOGY STUDIES",
+  "CONCLUSION",
+  "Drug Class Summary: Angiotensin-Converting Enzyme \\(ACE\\) Inhibitors",
+  "ACE INHIBITOR FETOPATHY",
+  "EFFECTS OF ACE INHIBITOR EXPOSURE DURING EMBRYOGENESIS",
+  "DRUG CLASS SUMMARY: ANGIOTENSIN II RECEPTOR BLOCKING AGENTS",
+  "ARBs FETOPATHY",
+  "EFFECTS OF ARBs DURING EMBRYOGENESIS",
+  "FETAL METHOTREXATE SYNDROME",
+  "NEURODEVELOPMENTAL AND CYTOGENETIC OUTCOMES",
+  "ORAL CLEFTS",
+  "OTHER SPECIFIC MALFORMATIONS",
+  "SPINA BIFIDA",
+  "MAJOR CONGENITAL ANOMALIES OVERALL",
+  "OTHER CONGENITAL ANOMALIES",
+  "FETAL VALPROATE SYNDROME",
+  "Drug Class Summary: Angiotensin II Receptor Blocking Agents",
+  "References:"
+)
 
 # Search pattern that will chunk by subtitles and preserve subtitles
 
@@ -107,10 +86,14 @@ subtitles_search <- paste0("(?=(", paste(subtitles, collapse = "\n|"), "))")
 # needed and will confuse the model in extraction
 
 patterns <- c(
-  "^\\d{2}/\\d{2}/\\d{4},\\s*\\d{2}:\\d{2}\\s+Reprotox - MICROMEDEX$",
-  "^https://www.micromedexsolutions.com/",
-  "© 2026 Reproductive Toxicology Center",
-  "© Merative US L.P. 1973, 2026"
+  "^\\d{2}/\\d{2}/\\d{4},\\s*\\d{2}:\\d{2}\\s+.*",
+  "TERIS Agent",
+  "Updated: \\d{2}/\\d{4}",
+  "^https://terisweb.pear-net.org",
+  "     Agent Metadata",
+  "      Bibliographic Search Date: *",
+  "      CAS: *",
+  "   © 2026 PEAR-Net Society"
 )
 
 pattern <- paste(patterns, collapse = "|")
@@ -328,13 +311,13 @@ make_formatting_query <- function(cleaned_report){
 }
 
 #######################################################
-# Reading in, Cleaning and Formatting Reprotox Reports
+# Reading in, Cleaning and Formatting TERIS Reports
 #######################################################
 
-# Raw Reprotox PDFs
-reprotox_files <- list.files(input_dir, full.names = T)
+# Raw TERIS PDFs
+teris_files <- list.files(input_dir, full.names = T)
 
-for (f in reprotox_files){
+for (f in teris_files){
   
   # Extract drug name
   drug_name <- unlist(strsplit(f, split = "[ \\.]"))
@@ -342,13 +325,12 @@ for (f in reprotox_files){
   drug_name <- paste(drug_name, collapse = "_")
   
   # Read report
-  reprotox <- pdftools::pdf_text(f)
+  teris <- pdftools::pdf_text(f)
   
-  report <- paste(reprotox, collapse = "\n")
+  report <- paste(teris, collapse = "\n")
   
   # Remove headers, footers ect
   lines <- strsplit(report, "\n")[[1]]
-  lines <- lines[-(1:5)]
   lines <- lines[!grepl(pattern, lines, ignore.case = F)]
   report <- paste(lines, collapse = "\n")
   
@@ -361,8 +343,12 @@ for (f in reprotox_files){
     # Subtitle
     subtitle <- unlist(strsplit(chunk, split = "\n"))[1]
     
-    subtitle <- gsub("         ", "", subtitle)
+    #subtitle <- gsub("         ", "", subtitle)
     subtitle <- gsub(" ", "_", subtitle)
+
+    if (subtitle == ""){
+      subtitle <- "Introduction"
+    }
 
     # Clean chunk
     cleaning_query <- make_cleaning_query(chunk)

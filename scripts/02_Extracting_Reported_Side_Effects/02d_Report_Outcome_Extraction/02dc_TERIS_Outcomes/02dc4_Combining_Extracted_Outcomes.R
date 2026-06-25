@@ -1,9 +1,9 @@
 ## 
-# Reading in adjudicated outcome chunks from Reprotox and combining
+# Reading in adjudicated outcome chunks from UKTIS Monographs and combining
 # into one dataset per drug
 ##
 # As the LLMs do not have a 100% regular output, some chunks had to be rerun through
-# 02db2_Outcome_Extraction to produce an output that included a valid json format
+# 02d2_Outcome_Extraction to produce an output that included a valid json format
 ##
 
 #######################################################
@@ -22,8 +22,8 @@ load_dot_env("config.env")
 
 interim_data <- Sys.getenv("interimdatadir")
 
-input_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/3_Adjudicated_Outcomes")
-output_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/4_Combined_Outcomes")
+input_dir <- file.path(interim_data, "reported_outcomes/UKTIS_outcomes/3_Adjudicated_Outcomes")
+output_dir <- file.path(interim_data, "reported_outcomes/UKTIS_outcomes/4_Combined_Outcomes")
 
 #######################################################
 # Reading in outcome chunks
@@ -40,7 +40,7 @@ for (f in adjudicating_outcomes){
   chunks <- list.files(f, full.names = T)
   
   # Remove references
-  chunks <- chunks[-(grep("References", chunks, ignore.case = T))]
+  chunks <- chunks[-(grep("References", chunks))]
   
   all_chunks <- lapply(chunks, readLines)
   
@@ -83,7 +83,7 @@ for (f in adjudicating_outcomes){
     combined <- list()
   
   for (chunk in all_chunks){
-
+    
     # Make sure the formatting is correct
     chunk_formatted <- gsub('\": NR,', '": "NR",', chunk)
     
@@ -126,3 +126,4 @@ for (f in adjudicating_outcomes){
   write_json(final_output, output_file, pretty = TRUE, auto_unbox = TRUE)
   
 }
+

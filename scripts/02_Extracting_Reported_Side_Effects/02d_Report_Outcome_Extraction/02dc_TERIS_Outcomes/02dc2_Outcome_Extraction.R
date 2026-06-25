@@ -25,8 +25,8 @@ load_dot_env("config.env")
 
 interim_data <- Sys.getenv("interimdatadir")
 
-input_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/1_Cleaned_PDFs")
-output_dir <- file.path(interim_data, "reported_outcomes/Reprotox_outcomes/2_Extracted_Outcomes")
+input_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/1_Cleaned_PDFs")
+output_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/2_Extracted_Outcomes")
 
 #######################################################
 # Initialise model
@@ -38,7 +38,7 @@ pull_model("qwen3:32b")
 # Assigning Data Source Options
 #######################################################
 
-dataset <- "Reprotox reports"
+dataset <- "TERIS reports"
 
 #######################################################
 # Creating Extraction Prompt + Query Function
@@ -222,6 +222,8 @@ for (f in cleaned_report){
     chunk_name <- chunk_name[-((length(chunk_name)-1):(length(chunk_name)))]
     chunk_name <- paste(chunk_name, collapse = "_")
     
+    chunk_name <- gsub(":", "", chunk_name)
+    
     # Read report chunk
     chunk <- readLines(i)
     
@@ -244,3 +246,4 @@ for (f in cleaned_report){
     writeLines(extracting_content, output_file)
   }
 }
+ 

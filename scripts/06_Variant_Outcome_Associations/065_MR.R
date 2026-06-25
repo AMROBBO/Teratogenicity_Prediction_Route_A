@@ -13,7 +13,7 @@
 # Load in libraries
 #######################################################
 
-pak::pak("MRCIEU/gpmapr")
+pak::pak("MRCIEU/TwoSampleMR")
 
 library(dotenv)
 library(dplyr)
@@ -175,7 +175,7 @@ for(drug in unique(targets$Drug)){
     ) 
   
   #######################################################
-  # Extract Outcome Asssociation Data
+  # Extract Outcome Association Data
   #######################################################
   
   # Drug Indications
@@ -243,7 +243,8 @@ for(drug in unique(targets$Drug)){
   # Harmonise
   #######################################################
   
-  harmonised <- harmonise_data(exposure_clumped, drug_outcome_assoc)
+  harmonised <- harmonise_data(exposure_clumped, drug_outcome_assoc) %>% 
+    filter(mr_keep == TRUE)
   
   #######################################################
   # MR
@@ -258,6 +259,8 @@ for(drug in unique(targets$Drug)){
   # Adding info on exposure data:
   #   - Gene (gene.exposure)
   #   - SNP
+  #   - F statistic
+  #   = R^2
   #   - Source (info.exposure)
   
   mr_res <- mr_res %>% 
@@ -286,6 +289,10 @@ for(drug in unique(targets$Drug)){
     select(id.exposure, id.outcome, method, nsnp, b, se, pval, SNP, f, r2, 
            gene.exposure, info.exposure, indication, openGWAS_outcome, 
            ncase.outcome, sample_size.outcome, category.outcome, consortium.outcome)
+  
+  #######################################################
+  # Save
+  #######################################################
 
   output_path <- file.path(output_dir, paste(drug, "Primary_Indication_MR_Res.csv", sep = "_"))
   
