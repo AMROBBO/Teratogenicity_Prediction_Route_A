@@ -246,4 +246,3 @@ for (f in cleaned_report){
     writeLines(extracting_content, output_file)
   }
 }
- 

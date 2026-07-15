@@ -33,8 +33,8 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/Qwen")
 #predicted <- "omim"
 predicted <- "gpmap"
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 if (predicted == "gpmap"){
   dataset = "Genotype-Phenotype Map"
@@ -174,6 +174,9 @@ for (f in list.files(input_dir, full.names = T)){
     predicted_terms <- unique(biobert_terms$Predicted_term)
     
     for (i in predicted_terms){
+
+      message(glue("Submitting query for {i} for {drug}"))
+
       prediction <- i
       FAERS <- biobert_terms %>% 
         filter(biobert_terms$Predicted_term == prediction) %>% 

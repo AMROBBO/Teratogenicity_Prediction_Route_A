@@ -34,8 +34,8 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/DeepSeek")
 #predicted <- "omim"
 predicted <- "gpmap"
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 if (predicted == "gpmap"){
   dataset = "Genotype-Phenotype Map"
@@ -160,7 +160,7 @@ submit_query <- function(query, drug, outcome){
 
 pull_model("deepseek-r1:8b")
 
-for (f in list.files(input_dir, full.names = T)){
+for (f in list.files(input_dir, full.names = T)[34:37]){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
   files <- list.files(file.path(f, predicted, outcome_cat), pattern = ".json", full.names = T)
@@ -178,6 +178,8 @@ for (f in list.files(input_dir, full.names = T)){
         filter(qwen_output[[prediction_column]] == prediction) %>% 
         select(matches.faers_term) %>% 
         as.list()
+      
+      message(glue("Submitting query for {prediction} for {drug}"))
       
       query <- make_deepseek_query(prediction, FAERS)
       

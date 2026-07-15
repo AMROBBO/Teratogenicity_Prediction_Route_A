@@ -3,7 +3,8 @@
 # into one dataset per drug
 ##
 # As the LLMs do not have a 100% regular output, some chunks had to be rerun through
-# 02d2_Outcome_Extraction to produce an output that included a valid json format
+# 02dc2_Outcome_Extraction and 02dc3_Extraction_Adjudication to produce an output 
+# that included a valid json format
 ##
 
 #######################################################
@@ -22,8 +23,8 @@ load_dot_env("config.env")
 
 interim_data <- Sys.getenv("interimdatadir")
 
-input_dir <- file.path(interim_data, "reported_outcomes/UKTIS_outcomes/3_Adjudicated_Outcomes")
-output_dir <- file.path(interim_data, "reported_outcomes/UKTIS_outcomes/4_Combined_Outcomes")
+input_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/3_Adjudicated_Outcomes")
+output_dir <- file.path(interim_data, "reported_outcomes/TERIS_outcomes/4_Combined_Outcomes")
 
 #######################################################
 # Reading in outcome chunks
@@ -126,4 +127,3 @@ for (f in adjudicating_outcomes){
   write_json(final_output, output_file, pretty = TRUE, auto_unbox = TRUE)
   
 }
-

@@ -35,8 +35,7 @@ interim_dir <- Sys.getenv("interimdatadir")
 processed_dir <- Sys.getenv("processeddatadir")
 resultsdir <- Sys.getenv("docsdir")
 
-exposure_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_input/exposure_associations.csv")
-outcome_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_input/outcome_associations.csv")
+mapped_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/Mapped_outcomes.csv")
 targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
 indications_file <- file.path(interim_dir, "reported_outcomes/Drug_Bank_outcomes/Drug_Bank_Indications.csv")
 MR_res_dir <- file.path(processed_dir, "Primary_indications_MR_Results")
@@ -59,13 +58,9 @@ drug_indications <- fread(indications_file) %>%
 # Normalise some drug naming
 drug_indications[which(drug_indications$Drug == "Valproate"), "Drug"] <- "Valproic acid"
 
-# Drug target assocation data
-exposure_data <- fread(exposure_file)
-
-# Outcome association data
-outcome_data <- fread(outcome_file) %>% 
-  select("indication", "openGWAS_outcome", "id", "chr", "position", "rsid", 
-         "ea", "nea", "eaf", "beta", "se", "p", "n")
+# Mapped Outcome data
+mapped_data <- fread(mapped_file) %>% 
+  select("indication", "openGWAS_outcome")
 
 MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
 
@@ -101,7 +96,7 @@ knitr::kable(
   caption = "Captopril Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -183,7 +178,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -192,7 +194,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -213,10 +215,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2
@@ -258,7 +260,7 @@ knitr::kable(
   caption = "Methotrexate Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -357,7 +359,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -366,7 +375,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -389,10 +398,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2
@@ -445,7 +454,7 @@ knitr::kable(
   caption = "Thalidomide Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -527,7 +536,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -536,7 +552,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -557,10 +573,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2
@@ -603,7 +619,7 @@ knitr::kable(
   caption = "Tretinoin Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -685,7 +701,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -694,7 +717,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -715,10 +738,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2
@@ -761,7 +784,7 @@ knitr::kable(
   caption = "Valproate Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -842,7 +865,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -851,7 +881,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -872,10 +902,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2
@@ -918,7 +948,7 @@ knitr::kable(
   caption = "Warfarin Primary Indications",
 )
 
-opengwas_outcomes <- outcome_data
+opengwas_outcomes <- mapped_data
 opengwas_outcomes$indication <- gsub("_", " ", opengwas_outcomes$indication)
 opengwas_outcomes <- opengwas_outcomes[grep(indication_list, opengwas_outcomes$indication),] %>% 
   select(c("indication","openGWAS_outcome")) %>% 
@@ -1000,7 +1030,14 @@ plot_df <- mr_res_plot %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+genes <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
   scales::hue_pal()(length(genes)),
@@ -1009,7 +1046,7 @@ gene_cols <- setNames(
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
 ```
@@ -1030,10 +1067,10 @@ ggplot(plot_df,
        )) +
   
   geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
+                 aes(colour = gene.snp)) +
                  
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
     fill = plot_df$fill_col,
     size = 2

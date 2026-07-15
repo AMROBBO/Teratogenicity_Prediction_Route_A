@@ -343,11 +343,15 @@ for (f in teris_files){
     # Subtitle
     subtitle <- unlist(strsplit(chunk, split = "\n"))[1]
     
-    #subtitle <- gsub("         ", "", subtitle)
     subtitle <- gsub(" ", "_", subtitle)
 
     if (subtitle == ""){
       subtitle <- "Introduction"
+    }
+    
+    # Summary of available literature is empty for some drugs
+    if((subtitle == "Summary_of_Available_Literature:" & nchar(chunk) == 36)){
+      next
     }
 
     # Clean chunk

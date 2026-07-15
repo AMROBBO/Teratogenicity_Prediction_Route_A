@@ -1,0 +1,1342 @@
+---
+title: "MR Results - MR PREG"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+        fig-width: 8
+        fig-height: 10
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(jsonlite)
+library(dplyr)
+library(here)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+library(ieugwasr)
+library(TwoSampleMR)
+library(ggplot2)
+
+# Read environment file
+
+readRenviron(here("config.env"))
+
+raw_dir <- Sys.getenv("rawdatadir")
+interim_dir <- Sys.getenv("interimdatadir")
+processed_dir <- Sys.getenv("processeddatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
+MR_res_dir <- file.path(processed_dir, "MR_PREG_MR_Results")
+
+MR_PREG_outcome_names_file <- file.path(raw_dir, "predicted_outcomes/MR_PREG/MR_PREG_Outcome_Names.csv")
+
+```
+
+```{r}
+#| label: Reading in data
+#| include: false
+
+# Target of each drug
+drug_targets <- fread(targets_file) %>% 
+  filter(Primary == "Primary")
+
+# Side effect of each drug - This will be the extracted side effects from reports
+
+# Mapped Outcome data - This will include the MR PREG outcomes associated with the extracted side effects
+
+# MR output
+MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
+
+# MR PREG outcome names
+MR_PREG_outcome_names <- fread(MR_PREG_outcome_names_file)
+
+```
+
+# Drugs of Interest:
+    * Captopril
+    * Methotrexate
+    * Mycophenolate mofetil
+    * Thalidomide
+    * Tretinoin
+    * Valproate
+    * Warfarin
+
+## To Include:
+  * Side effects identified by report extraction
+  * How these side effects map to MR PREG outcomes
+  * Therefore which MR PREG outcomes are relevant to the drug of interest
+
+# Captopril
+
+## Side Effects
+```{r}
+#| label: Captopril_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Captopril"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Captopril Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Captopril MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Captopril_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Captopril Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Captopril_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Captopril", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Captopril_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Captopril_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Methotrexate
+
+## Side Effects
+```{r}
+#| label: Methotrexate_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Methotrexate"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Methotrexate Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Methotrexate MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Methotrexate_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Methotrexate Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Methotrexate_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Methotrexate", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Methotrexate_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() + 
+
+  theme(
+    axis.text.y = element_text(size = 5)
+  ) +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Methotrexate_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+
+  theme(
+    axis.text.y = element_text(size = 5)
+  ) +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Mycophenolate mofetil
+
+## Side Effects
+```{r}
+#| label: Mycophenolate_mofetil_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Mycophenolate mofetil"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Mycophenolate mofetil Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Mycophenolate mofetil MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Mycophenolate_mofetil_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Mycophenolate mofetil Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Mycophenolate_mofetil_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Mycophenolate_mofetil", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Mycophenolate_mofetil_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Mycophenolate_mofetil_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Thalidomide
+
+## Side Effects
+```{r}
+#| label: Thalidomide_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Thalidomide"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Thalidomide Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Thalidomide MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Thalidomide_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Thalidomide Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Thalidomide_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Thalidomide", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Thalidomide_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Thalidomide_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Tretinoin
+
+## Side Effects
+```{r}
+#| label: Tretinoin_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Tretinoin"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Tretinoin Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Tretinoin MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Tretinoin_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Tretinoin Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Tretinoin_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Tretinoin", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Tretinoin_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Tretinoin_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Valproate
+
+## Side Effects
+```{r}
+#| label: Valproate_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Valproic acid"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Valproate Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Valproate MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Valproate_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Valproate Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Valproate_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Valproic_acid", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Valproate_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Valproate_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+# Warfarin
+
+## Side Effects
+```{r}
+#| label: Warfarin_Side_Effects
+#| include: true
+#| echo: false
+
+drug <- "Warfarin"
+
+# What are the side effects
+
+
+#knitr::kable(
+#  side_effects,
+#  caption = "Warfarin Side Effects",
+#)
+
+# What MR PREG outcomes are associated with these side effects
+
+#knitr::kable(
+#  mrpreg_outcomes,
+#  caption = "Warfarin MR PREG Outcomes",
+#)
+
+```
+
+## Targets
+```{r}
+#| label: Warfarin_Targets
+#| include: true
+#| echo: false
+
+
+# What are the targets
+targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name")) %>% 
+  unique()
+
+knitr::kable(
+  targets,
+  caption = "Warfarin Targets",
+)
+
+target_list <- paste0("^", paste(targets$Gene_Name, collapse = "$|^"), "$")
+```
+
+## MR Analysis Results
+
+Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+```{r}
+#| label: Warfarin_MR
+#| include: false
+#| echo: false
+
+mr_res <- MR_res_files[grep("Warfarin", MR_res_files)] %>% 
+  fread()
+
+mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+plot_df <- mr_res %>%
+  mutate(
+    OR = if_else(binary == "Yes", exp(b), NA_real_),
+    lower = if_else(binary == "Yes",
+                    exp(b - 1.96 * se),
+                    b - 1.96 * se),
+    upper = if_else(binary == "Yes",
+                    exp(b + 1.96 * se),
+                    b + 1.96 * se),
+    outcome = factor(Meaning),
+    sig = pval < 0.05
+  )
+
+genes <- unique(plot_df$gene.exposure)
+
+gene_cols <- setNames(
+  scales::hue_pal()(length(genes)),
+  genes
+)
+
+plot_df$fill_col <- ifelse(
+  plot_df$sig,
+  gene_cols[plot_df$gene.exposure],
+  "white"
+)
+```
+
+### Binary Outcomes
+```{r}
+#| label: Warfarin_MR_Plot_Binary
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 100
+
+plot_df_bin <- plot_df %>% filter(binary == "Yes")
+
+ggplot(plot_df_bin,
+       aes(
+         y = id.exposure,
+         x = OR,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_bin$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_x_log10() +
+  
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+### Continuous Outcomes
+```{r}
+#| label: Warfarin_MR_Plot_Continuous
+#| include: true
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 30
+
+plot_df_cont <- plot_df %>% filter(binary == "No")
+
+ggplot(plot_df_cont,
+       aes(
+         y = id.exposure,
+         x = b,
+         xmin = lower,
+         xmax = upper
+       )) +
+  
+  geom_errorbarh(height = 0.2,
+                 aes(colour = gene.exposure)) +
+                 
+  geom_point(
+    aes(colour = gene.exposure),
+    shape = 21,
+    fill = plot_df_cont$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+    
+  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
+
+  scale_colour_manual(values = gene_cols) +
+  
+  theme_bw() +
+  
+  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+
+```{r}
+#| eval: false
+#| include: false
+
+quarto::quarto_render(
+  "scripts/06_Variant_Outcome_Associations/068_MR_Preg_Plotting.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
+```

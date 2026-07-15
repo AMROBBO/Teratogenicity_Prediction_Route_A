@@ -37,8 +37,8 @@ input_dir <- file.path(interim_data, "ontology_mapping/output_data")
 #predicted <- "omim"
 predicted <- "gpmap"
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+outcome_cat <- "all"
+#outcome_cat <- "cong"
 
 output_base_dir <- file.path(processed_data, paste0(toupper(predicted), "_FAERS_outcomes"))
 
@@ -83,6 +83,8 @@ for (f in list.files(deepseek_results, full.names = T)){
       list.files(., pattern = outcome_cat, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
+    message(paste(drug, "has", length(qwen_files), "qwen files"))
+    
     for (i in qwen_files){
       qwen <- jsonlite::fromJSON(i)
       
@@ -103,6 +105,7 @@ for (f in list.files(deepseek_results, full.names = T)){
       list.files(., pattern = outcome_cat, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
+    message(paste(drug, "has", length(deepseek_files), "deepseek files"))
     for (j in deepseek_files){
       deepseek <- jsonlite::fromJSON(j) %>%  
         as.data.frame()
@@ -113,12 +116,9 @@ for (f in list.files(deepseek_results, full.names = T)){
     
     ## Merge all results
     
-    #results_merge <- merge(biobert, qwen_all, by = c("Predicted_term", "Observed_term"), all = T)
-    results_merge <- left_join(biobert, qwen_all, by = c("Predicted_term", "Observed_term")) 
-    #results_merge <- merge(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term"), all = T) %>% 
-    #  group_by(Predicted_term) %>% 
-    #  arrange(desc(Confidence_Deepseek), .by_group = T)
-    results_merge <- left_join(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term")) %>% 
+    results_merge <- left_join(biobert, qwen_all, by = c("Predicted_term", "Observed_term"), relationship = "many-to-many") 
+
+    results_merge <- left_join(results_merge, deepseek_all, by = c("Predicted_term", "Observed_term"), relationship = "many-to-many") %>% 
       group_by(Predicted_term) %>%
       arrange(desc(Confidence_Deepseek), .by_group = T)
     results_merge_sig <- results_merge %>% filter(!is.na(Confidence_Qwen))
@@ -146,3 +146,8 @@ for (f in list.files(deepseek_results, full.names = T)){
     fwrite(results_merge_accept, output_file_accept)
   }
 }
+
+
+# Run mapping for cong outcomes
+
+# Map Mr PREG outcomes to extracted outcomes/Collate all reported outcomes into one? Look at confidence levels
