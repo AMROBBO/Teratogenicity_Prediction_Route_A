@@ -37,8 +37,8 @@ input_dir <- file.path(interim_data, "ontology_mapping/output_data")
 #predicted <- "omim"
 predicted <- "gpmap"
 
-outcome_cat <- "all"
-#outcome_cat <- "cong"
+#outcome_cat <- "all"
+outcome_cat <- "cong"
 
 output_base_dir <- file.path(processed_data, paste0(toupper(predicted), "_FAERS_outcomes"))
 
@@ -148,6 +148,5 @@ for (f in list.files(deepseek_results, full.names = T)){
 }
 
 
-# Run mapping for cong outcomes
 
 # Map Mr PREG outcomes to extracted outcomes/Collate all reported outcomes into one? Look at confidence levels

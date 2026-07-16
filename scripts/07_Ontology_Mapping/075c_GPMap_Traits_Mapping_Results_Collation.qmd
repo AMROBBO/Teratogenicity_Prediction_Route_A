@@ -93,7 +93,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", captopril_count_fae
 captopril_results_path <- file.path(LLM_results_dir, "captopril/all/captopril_gpmap_faers_LLM_all_accepted.csv")
 
 captopril_results <- fread(captopril_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(captopril_results) %>%
   kable_styling() 
@@ -110,7 +110,7 @@ kable(captopril_results) %>%
 captopril_results_path <- file.path(LLM_results_dir, "captopril/cong/captopril_gpmap_faers_LLM_cong_accepted.csv")
 
 captopril_results <- fread(captopril_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(captopril_results) %>%
   kable_styling() 
@@ -145,7 +145,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", methotrexate_count_
 methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/all/methotrexate_gpmap_faers_LLM_all_accepted.csv")
 
 methotrexate_results <- fread(methotrexate_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(methotrexate_results) %>%
   kable_styling() 
@@ -161,7 +161,7 @@ kable(methotrexate_results) %>%
 methotrexate_results_path <- file.path(LLM_results_dir, "methotrexate/cong/methotrexate_gpmap_faers_LLM_cong_accepted.csv")
 
 methotrexate_results <- fread(methotrexate_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(methotrexate_results) %>%
   kable_styling() 
@@ -196,7 +196,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", mycophenolate_mofet
 mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/all/mycophenolate_mofetil_gpmap_faers_LLM_all_accepted.csv")
 
 mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(mycophenolate_mofetil_results) %>%
   kable_styling() 
@@ -213,7 +213,7 @@ kable(mycophenolate_mofetil_results) %>%
 mycophenolate_mofetil_results_path <- file.path(LLM_results_dir, "mycophenolate_mofetil/cong/mycophenolate_mofetil_gpmap_faers_LLM_cong_accepted.csv")
 
 mycophenolate_mofetil_results <- fread(mycophenolate_mofetil_results_path) %>%
-    select(Predicted_term, Observed_term)
+    select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(mycophenolate_mofetil_results) %>%
   kable_styling() 
@@ -248,7 +248,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", thalidomide_count_f
 thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/all/thalidomide_gpmap_faers_LLM_all_accepted.csv")
 
 thalidomide_results <- fread(thalidomide_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(thalidomide_results) %>%
   kable_styling() 
@@ -265,7 +265,7 @@ kable(thalidomide_results) %>%
 thalidomide_results_path <- file.path(LLM_results_dir, "thalidomide/cong/thalidomide_gpmap_faers_LLM_cong_accepted.csv")
 
 thalidomide_results <- fread(thalidomide_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(thalidomide_results) %>%
   kable_styling() 
@@ -300,7 +300,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", tretinoin_count_fae
 tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/all/tretinoin_gpmap_faers_LLM_all_accepted.csv")
 
 tretinoin_results <- fread(tretinoin_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(tretinoin_results) %>%
   kable_styling() 
@@ -317,7 +317,7 @@ kable(tretinoin_results) %>%
 tretinoin_results_path <- file.path(LLM_results_dir, "tretinoin/cong/tretinoin_gpmap_faers_LLM_cong_accepted.csv")
 
 tretinoin_results <- fread(tretinoin_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(tretinoin_results) %>%
   kable_styling() 
@@ -352,7 +352,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", valproate_count_fae
 valproate_results_path <- file.path(LLM_results_dir, "valproate/all/valproate_gpmap_faers_LLM_all_accepted.csv")
 
 valproate_results <- fread(valproate_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(valproate_results) %>%
   kable_styling() 
@@ -369,7 +369,7 @@ kable(valproate_results) %>%
 valproate_results_path <- file.path(LLM_results_dir, "valproate/cong/valproate_gpmap_faers_LLM_cong_accepted.csv")
 
 valproate_results <- fread(valproate_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(valproate_results) %>%
   kable_styling() 
@@ -404,7 +404,7 @@ cat(paste("Number of FAERS Reported Outcomes (congenital):", warfarin_count_faer
 warfarin_results_path <- file.path(LLM_results_dir, "warfarin/all/warfarin_gpmap_faers_LLM_all_accepted.csv")
 
 warfarin_results <- fread(warfarin_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`, Percentage)
 
 kable(warfarin_results) %>%
   kable_styling() 
@@ -421,16 +421,17 @@ kable(warfarin_results) %>%
 warfarin_results_path <- file.path(LLM_results_dir, "warfarin/cong/warfarin_gpmap_faers_LLM_cong_accepted.csv")
 
 warfarin_results <- fread(warfarin_results_path) %>%
-     select(Predicted_term, Observed_term)
+     select(Predicted_term, Observed_term, `Number of Cases`)
 
 kable(warfarin_results) %>%
   kable_styling() 
 
 ```
 
-# Render
+
 ```{r}
 #| eval: false
+#| include: false
 
 quarto::quarto_render(
   "scripts/07_Ontology_Mapping/075c_GPMap_Traits_Mapping_Results_Collation.qmd",

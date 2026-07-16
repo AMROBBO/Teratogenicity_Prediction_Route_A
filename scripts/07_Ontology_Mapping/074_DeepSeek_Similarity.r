@@ -160,7 +160,7 @@ submit_query <- function(query, drug, outcome){
 
 pull_model("deepseek-r1:8b")
 
-for (f in list.files(input_dir, full.names = T)[34:37]){
+for (f in list.files(input_dir, full.names = T)){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
   files <- list.files(file.path(f, predicted, outcome_cat), pattern = ".json", full.names = T)

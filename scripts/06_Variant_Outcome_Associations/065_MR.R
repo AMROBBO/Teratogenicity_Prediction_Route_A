@@ -39,6 +39,8 @@ targets_file <- file.path(interim_data, "predicted_outcomes/Drug_Bank_targets/Dr
 variants_file <- file.path(interim_data, "predicted_outcomes/G_P_Map_Variants/all_variants.csv")
 indications_file <- file.path(interim_data, "reported_outcomes/Drug_Bank_outcomes/Drug_Bank_Indications.csv")
 mapped_file <- file.path(interim_data, "predicted_outcomes/Primary_Indication_Mapping/Mapped_outcomes.csv")
+
+harm_output_dir <- file.path(interim_data, "predicted_outcomes/Primary_Indication_Mapping/MR_output")
 output_dir <- file.path(processed_data, "Primary_indications_MR_Results")
 
 # For Clumping
@@ -319,9 +321,11 @@ for(drug in unique(targets$Drug)){
   #######################################################
   # Save
   #######################################################
-
+  
+  harm_output_path <- file.path(harm_output_dir, paste(drug, "Primary_Indication_Harmonised.csv", sep = "_"))
   output_path <- file.path(output_dir, paste(drug, "Primary_Indication_MR_Res.csv", sep = "_"))
   
+  fwrite(harmonised, harm_output_path)
   fwrite(mr_res, output_path)
 }
   
