@@ -38,6 +38,7 @@ resultsdir <- Sys.getenv("docsdir")
 mapped_file <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/Mapped_outcomes.csv")
 targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
 indications_file <- file.path(interim_dir, "reported_outcomes/Drug_Bank_outcomes/Drug_Bank_Indications.csv")
+harmonised_dir <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/MR_output")
 MR_res_dir <- file.path(processed_dir, "Primary_indications_MR_Results")
 
 ```
@@ -62,6 +63,7 @@ drug_indications[which(drug_indications$Drug == "Valproate"), "Drug"] <- "Valpro
 mapped_data <- fread(mapped_file) %>% 
   select("indication", "openGWAS_outcome")
 
+harmonised_files <- list.files(harmonised_dir, full.names = TRUE)
 MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
 
 ```
@@ -169,13 +171,16 @@ mr_res <- MR_res_files[grep("Captopril", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -238,6 +243,37 @@ ggplot(plot_df,
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Captopril_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Captopril",
+)
+
+```
 
 # Methotrexate
 
@@ -350,13 +386,16 @@ mr_res <- MR_res_files[grep("Methotrexate", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -418,6 +457,38 @@ ggplot(plot_df,
   theme(axis.text.y = element_text(size = 6)) +
   
   labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+```
+
+## SNP-Outcome Association Significance
+```{r}
+#| label: Methotrexate_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Methotrexate",
+)
 
 ```
 
@@ -527,13 +598,16 @@ mr_res <- MR_res_files[grep("Thalidomide", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -596,6 +670,37 @@ ggplot(plot_df,
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Thalidomide_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Thalidomide",
+)
+
+```
 
 # Tretinoin
 
@@ -692,13 +797,16 @@ mr_res <- MR_res_files[grep("Tretinoin", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -761,6 +869,37 @@ ggplot(plot_df,
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Tretinoin_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Tretinoin",
+)
+
+```
 
 # Valproate
 
@@ -856,13 +995,16 @@ mr_res <- MR_res_files[grep("Valproic acid", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -925,6 +1067,37 @@ ggplot(plot_df,
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Valproate_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Valproate",
+)
+
+```
 
 # Warfarin
 
@@ -1021,13 +1194,16 @@ mr_res <- MR_res_files[grep("Warfarin", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
+# Adjusting p values for multiple testing
+mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
 plot_df <- mr_res_plot %>% 
   mutate(
     OR = exp(b),
     lower = exp(b - 1.96 * se),
     upper = exp(b + 1.96 * se),
     outcome = factor(openGWAS_outcome),
-    sig = pval < 0.05
+    sig = pval_adj < 0.05
   )
 
 plot_df$gene.snp <- paste0(
@@ -1090,6 +1266,37 @@ ggplot(plot_df,
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Warfarin_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+  fread() %>%
+  filter(id.outcome %in% unique(studies$opengwas_id)) %>%
+  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+
+harmonised_data <- harmonised_data %>%
+  group_by(originalname.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE)
+
+knitr::kable(
+  harmonised_data,
+  digits = 100,
+  caption = "Significant SNP-Outcome Associations for Warfarin",
+)
+
+```
 
 ```{r}
 #| eval: false
