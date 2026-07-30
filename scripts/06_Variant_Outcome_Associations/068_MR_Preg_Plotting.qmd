@@ -37,6 +37,7 @@ processed_dir <- Sys.getenv("processeddatadir")
 resultsdir <- Sys.getenv("docsdir")
 
 targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
+harmonised_dir <- file.path(interim_dir, "predicted_outcomes/MR_PREG/MR_output")
 MR_res_dir <- file.path(processed_dir, "MR_PREG_MR_Results")
 
 MR_PREG_outcome_names_file <- file.path(raw_dir, "predicted_outcomes/MR_PREG/MR_PREG_Outcome_Names.csv")
@@ -54,6 +55,9 @@ drug_targets <- fread(targets_file) %>%
 # Side effect of each drug - This will be the extracted side effects from reports
 
 # Mapped Outcome data - This will include the MR PREG outcomes associated with the extracted side effects
+
+# Harmonised data
+harmonised_files <- list.files(harmonised_dir, full.names = TRUE)
 
 # MR output
 MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
@@ -295,6 +299,44 @@ for (g in genes)  {
 ```
 
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Captopril_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
+
+```
+
 
 # Methotrexate
 
@@ -512,6 +554,43 @@ for (g in genes)  {
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Methotrexate_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
+
+```
 
 # Mycophenolate mofetil
 
@@ -725,6 +804,45 @@ for (g in genes)  {
 
   print(p)
 
+}
+
+```
+
+
+## SNP-Outcome Association Significance
+```{r}
+#| label: Mycophenolate_mofetil_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
 }
 
 ```
@@ -946,6 +1064,44 @@ for (g in genes)  {
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Thalidomide_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
+
+```
+
 
 # Tretinoin
 
@@ -1159,6 +1315,44 @@ for (g in genes)  {
 
   print(p)
 
+}
+
+```
+
+## SNP-Outcome Association Significance
+```{r}
+#| label: Tretinoin_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
 }
 
 ```
@@ -1380,6 +1574,44 @@ for (g in genes)  {
 
 ```
 
+## SNP-Outcome Association Significance
+```{r}
+#| label: Valproate_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
+
+```
+
 
 # Warfarin
 
@@ -1595,6 +1827,44 @@ for (g in genes)  {
 
 }
       
+```
+
+## SNP-Outcome Association Significance
+```{r}
+#| label: Warfarin_SNP_Outcome_Association_Significance
+#| include: true
+#| echo: false
+
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
+  fread() %>%
+  select(SNP, pval.outcome, id.outcome, gene.exposure)
+
+harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+harmonised_data <- harmonised_data %>%
+  group_by(id.outcome) %>%
+  mutate(
+    pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+  ) %>%
+  ungroup()
+
+harmonised_data <- harmonised_data %>%
+  mutate(
+    sig = pval.outcome_adj < 0.05
+  ) %>%
+  filter(sig == TRUE) %>%
+  unique()
+
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
+
 ```
 
 

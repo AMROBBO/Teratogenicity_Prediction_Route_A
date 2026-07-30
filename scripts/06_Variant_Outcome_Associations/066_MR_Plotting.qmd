@@ -1088,7 +1088,7 @@ chosen_outcomes <- paste0("^",
                     paste(unique(studies$opengwas_id), collapse = "$|^"),
                     "$")
 
-mr_res <- MR_res_files[grep("Valproic acid", MR_res_files)] %>% 
+mr_res <- MR_res_files[grep("Valproic_acid", MR_res_files)] %>% 
   fread()
 
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
@@ -1194,7 +1194,7 @@ for (g in genes) {
 #| include: true
 #| echo: false
 
-harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
+harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
   select(SNP, pval.outcome, originalname.outcome, gene.exposure)
