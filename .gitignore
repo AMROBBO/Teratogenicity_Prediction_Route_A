@@ -60,3 +60,7 @@ config.env
 *_cache/
 .quarto/
 .positai
+
+# Logs
+logs/
+.log

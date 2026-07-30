@@ -154,18 +154,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -180,37 +189,53 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
+
 
 ### Continuous Outcomes
 ```{r}
@@ -224,35 +249,51 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
+
 
 
 # Methotrexate
@@ -332,18 +373,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -358,39 +408,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
+
   scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() + 
 
-  theme(
-    axis.text.y = element_text(size = 5)
-  ) +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+  theme_bw() +
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -406,37 +467,48 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
-  scale_colour_manual(values = gene_cols) +
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
   
+  scale_colour_manual(values = gene_cols) +
+
   theme_bw() +
 
-  theme(
-    axis.text.y = element_text(size = 5)
-  ) +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -518,18 +590,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -544,35 +625,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -588,33 +684,48 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -696,18 +807,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -722,35 +842,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -766,33 +901,48 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -874,18 +1024,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -900,35 +1059,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -944,33 +1118,48 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -1052,18 +1241,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -1078,35 +1276,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -1122,33 +1335,48 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -1230,18 +1458,27 @@ plot_df <- mr_res %>%
     sig = pval < 0.05
   )
 
-genes <- unique(plot_df$gene.exposure)
+plot_df$gene.snp <- paste0(
+  plot_df$gene.exposure,
+  "(",
+  plot_df$SNP,
+  ")"
+)
+
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
   plot_df$sig,
-  gene_cols[plot_df$gene.exposure],
+  gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ### Binary Outcomes
@@ -1256,35 +1493,50 @@ plot_df$fill_col <- ifelse(
 
 plot_df_bin <- plot_df %>% filter(binary == "Yes")
 
-ggplot(plot_df_bin,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_bin$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
+
   theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+
+  labs(
+    title = g,
+    x = "Odds Ratio per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
 
 ```
 
@@ -1300,34 +1552,49 @@ ggplot(plot_df_bin,
 
 plot_df_cont <- plot_df %>% filter(binary == "No")
 
-ggplot(plot_df_cont,
-       aes(
-         y = id.exposure,
-         x = b,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.exposure)) +
-                 
+for (g in genes)  {
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
   geom_point(
-    aes(colour = gene.exposure),
+    aes(colour = gene.snp),
     shape = 21,
-    fill = plot_df_cont$fill_col,
+    fill = df$fill_col,
     size = 2
   ) +
 
   geom_vline(xintercept = 0, linetype = 2) +
-    
-  facet_wrap(~ outcome, scales = "free_x", ncol = 2) +
 
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
   scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Effect Size per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
 
+  theme_bw() +
+
+  labs(
+    title = g,
+    x = "Effect Size per 1 SD increase in QTL", 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  print(p)
+
+}
+      
 ```
 
 

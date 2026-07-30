@@ -256,7 +256,6 @@ for(drug in unique(targets$Drug)){
   neg <- harmonised$beta.exposure < 0
   
   # Flipping betes
-  
   harmonised$beta.exposure[neg] <- -harmonised$beta.exposure[neg]
   harmonised$beta.outcome[neg] <- -harmonised$beta.outcome[neg]
   
@@ -322,8 +321,8 @@ for(drug in unique(targets$Drug)){
   # Save
   #######################################################
   
-  harm_output_path <- file.path(harm_output_dir, paste(drug, "Primary_Indication_Harmonised.csv", sep = "_"))
-  output_path <- file.path(output_dir, paste(drug, "Primary_Indication_MR_Res.csv", sep = "_"))
+  harm_output_path <- file.path(harm_output_dir, paste(gsub(" ", "_", drug), "Primary_Indication_Harmonised.csv", sep = "_"))
+  output_path <- file.path(output_dir, paste(gsub(" ", "_", drug), "Primary_Indication_MR_Res.csv", sep = "_"))
   
   fwrite(harmonised, harm_output_path)
   fwrite(mr_res, output_path)

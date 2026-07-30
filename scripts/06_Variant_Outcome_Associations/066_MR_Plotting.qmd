@@ -6,7 +6,7 @@ format:
     html:
         toc: true
         toc-location: left
-        fig-width: 8
+        fig-width: 10
         fig-height: 10
 ---
 
@@ -190,11 +190,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -202,6 +202,8 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
 ```
 
 ```{r}
@@ -211,35 +213,52 @@ plot_df$fill_col <- ifelse(
 #| warning: false
 #| message: false
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -267,11 +286,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Captopril",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
 
 ```
 
@@ -405,11 +428,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -417,6 +440,9 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
+
 ```
 
 ```{r}
@@ -428,35 +454,52 @@ plot_df$fill_col <- ifelse(
 #| fig-width: 10
 #| fig-height: 30
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme(axis.text.y = element_text(size = 6)) +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -484,11 +527,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Methotrexate",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for", drug, "after multiple testing correction.")
+}
 
 ```
 
@@ -617,11 +664,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -629,6 +676,9 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
+
 ```
 
 ```{r}
@@ -637,36 +687,55 @@ plot_df$fill_col <- ifelse(
 #| echo: false
 #| warning: false
 #| message: false
+#| fig-width: 6
+#| fig-height: 5
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -694,11 +763,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Thalidomide",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
 
 ```
 
@@ -816,11 +889,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -828,6 +901,9 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
+
 ```
 
 ```{r}
@@ -836,36 +912,55 @@ plot_df$fill_col <- ifelse(
 #| echo: false
 #| warning: false
 #| message: false
+#| fig-width: 10
+#| fig-height: 5
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x") +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -893,11 +988,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Tretinoin",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
 
 ```
 
@@ -1014,11 +1113,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -1026,6 +1125,9 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
+
 ```
 
 ```{r}
@@ -1034,36 +1136,55 @@ plot_df$fill_col <- ifelse(
 #| echo: false
 #| warning: false
 #| message: false
+#| fig-width: 10
+#| fig-height: 10
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -1091,11 +1212,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Valproate",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
 
 ```
 
@@ -1213,11 +1338,11 @@ plot_df$gene.snp <- paste0(
   ")"
 )
 
-genes <- unique(plot_df$gene.snp)
+snps <- unique(plot_df$gene.snp)
 
 gene_cols <- setNames(
-  scales::hue_pal()(length(genes)),
-  genes
+  scales::hue_pal()(length(snps)),
+  snps
 )
 
 plot_df$fill_col <- ifelse(
@@ -1225,6 +1350,9 @@ plot_df$fill_col <- ifelse(
   gene_cols[plot_df$gene.snp],
   "white"
 )
+
+genes <- unique(plot_df$gene.exposure)
+
 ```
 
 ```{r}
@@ -1233,36 +1361,55 @@ plot_df$fill_col <- ifelse(
 #| echo: false
 #| warning: false
 #| message: false
+#| fig-width: 10
+#| fig-height: 10
 
-ggplot(plot_df,
-       aes(
-         y = id.exposure,
-         x = OR,
-         xmin = lower,
-         xmax = upper
-       )) +
-  
-  geom_errorbarh(height = 0.2,
-                 aes(colour = gene.snp)) +
-                 
-  geom_point(
-    aes(colour = gene.snp),
-    shape = 21,
-    fill = plot_df$fill_col,
-    size = 2
+for (g in genes) {
+
+  df <- subset(plot_df, gene.exposure == g)
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
   ) +
 
-  geom_vline(xintercept = 1, linetype = 2) +
-  
-  scale_x_log10() +
-  
-  facet_wrap(~ openGWAS_outcome, scales = "free_x", ncol = 2) +
+    geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
 
-  scale_colour_manual(values = gene_cols) +
-  
-  theme_bw() +
-  
-  labs(x = "Odds Ratio per 1 SD increase in QTL", y = "Drug Target Measure", colour = "Drug Target")
+    geom_point(
+      aes(colour = gene.snp),
+      shape = 21,
+      fill = df$fill_col,
+      size = 2
+    ) +
+
+    geom_vline(xintercept = 1, linetype = 2) +
+
+    scale_x_log10() +
+
+    facet_wrap(~openGWAS_outcome,
+               scales = "free_x",
+               ncol = 2) +
+
+    scale_colour_manual(values = gene_cols) +
+
+    theme_bw() +
+
+    theme(axis.text.y = element_text(size = 8)) +
+
+    labs(
+      title = g,
+      x = "Odds Ratio per 1 SD increase in QTL",
+      y = "Drug Target Measure",
+      colour = "Drug Target Variant"
+    )
+
+  print(p)
+}
 
 ```
 
@@ -1290,11 +1437,15 @@ harmonised_data <- harmonised_data %>%
   ) %>%
   filter(sig == TRUE)
 
-knitr::kable(
-  harmonised_data,
-  digits = 100,
-  caption = "Significant SNP-Outcome Associations for Warfarin",
-)
+if(nrow(harmonised_data) != 0) {
+  knitr::kable(
+    harmonised_data,
+    digits = 100,
+    caption = paste0("Significant SNP-Outcome Associations for ", drug)
+    )
+} else {
+  cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+}
 
 ```
 

@@ -35,6 +35,7 @@ targets_file <- file.path(interim_data, "predicted_outcomes/Drug_Bank_targets/Dr
 variants_file <- file.path(interim_data, "predicted_outcomes/G_P_Map_Variants/all_variants.csv")
 mrpreg_file <- file.path(raw_data, "predicted_outcomes/MR_PREG/ma_out_dat.txt")
 
+harm_output_dir <- file.path(interim_data, "predicted_outcomes/MR_PREG/MR_output")
 output_dir <- file.path(processed_data, "MR_PREG_MR_Results")
 
 # For Clumping
@@ -191,6 +192,31 @@ for (drug in unique(targets$Drug)){
     filter(mr_keep == TRUE)
   
   #######################################################
+  # Flipping to make exposure association positive (increasing gene expression/protein abundance)
+  #######################################################
+  
+  # For all negative exposure betas
+  neg <- harmonised$beta.exposure < 0
+  
+  # Flipping betes
+  harmonised$beta.exposure[neg] <- -harmonised$beta.exposure[neg]
+  harmonised$beta.outcome[neg] <- -harmonised$beta.outcome[neg]
+  
+  # Flip effect and other alleles - exposure
+  ea <- harmonised$effect_allele.exposure[neg]
+  harmonised$effect_allele.exposure[neg] <- harmonised$other_allele.exposure[neg]
+  harmonised$other_allele.exposure[neg] <- ea
+  
+  # Flip effect and other alleles - outcome
+  ea <- harmonised$effect_allele.outcome[neg]
+  harmonised$effect_allele.outcome[neg] <- harmonised$other_allele.outcome[neg]
+  harmonised$other_allele.outcome[neg] <- ea
+  
+  # Flip Effect Allele frequency
+  harmonised$eaf.exposure[neg] <- 1 - harmonised$eaf.exposure[neg]
+  harmonised$eaf.outcome[neg] <- 1 - harmonised$eaf.outcome[neg]
+  
+  #######################################################
   # MR
   #######################################################
   
@@ -237,7 +263,9 @@ for (drug in unique(targets$Drug)){
   # Save
   #######################################################
   
+  harm_output_path <- file.path(harm_output_dir, paste(gsub(" ", "_", drug), "MR_PREG_Harmonised.csv", sep = "_"))
   output_path <- file.path(output_dir, paste(gsub(" ", "_", drug), "MR_PREG_MR_Res.csv", sep = "_"))
   
+  fwrite(harmonised, harm_output_path)
   fwrite(mr_res, output_path)
 }
