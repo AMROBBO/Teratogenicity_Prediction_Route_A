@@ -1,0 +1,440 @@
+---
+title: "Evaluating Ontology Mapping using Multiple Language Models"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(here)
+library(gt)
+library(kableExtra)
+
+# Read environment file
+#load_dot_env("config.env")
+readRenviron(here("config.env"))
+
+interim_dir <- Sys.getenv("interimdatadir")
+processed_dir <- Sys.getenv("processeddatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+# Mapping outputs
+mapping_output_dir <- file.path(interim_dir, "ontology_mapping/output_data")
+pipeline_output_dir <- file.path(processed_dir, "ONE_TEST_test_outcomes/test/two_test")
+
+# Manually curated expected cosine similarity values
+expected_path <- file.path(interim_dir, "ontology_mapping/input_data/test/test_all.csv")
+control_outcomes <- fread(expected_path)
+
+```
+
+# Mapping Pipeline
+
+Ontology mapping was used to compare phenotypic outcomes from different sources using different terminologies.
+
+The different sources included:
+
+  * Observed/reported outcomes:
+    * FAERS
+      * All outcomes
+      * Congenital, Familial and Genetic disorders
+      * Pregnancy, Puerperium and Perinatal conditions
+    * UKTIS Monographs
+    * Reprotox
+    * TERIS
+    * SmPCs
+  * Genetic databases used for prediction:
+    * OMIM
+    * Genotype-Phenotype Map
+    * IEU OpenGWAS
+    * MR PREG
+    * 100,000 Genomes Project
+
+The pipeline used the following steps:
+
+  1. Biobert models 
+
+    a. Generate embeddings for each outcome term
+    b. Calculate cosine similarity between each pair of outcomes
+    c. Extract the 30 most similar observed outcome for each predicted outcome
+  2. Qwen 
+
+    a. Assess the similarity of the top 30 pairs of outcomes and generate a similarity score
+    b. Only keep pairs with some association (score > 0)
+  3. DeepSeek
+
+    a. Assess the similarity of the outcomes output by Qwen and generate a similarity score
+    b. Only accept pairs with some relationship (score > 1)
+
+# Evaluating Mapping performance
+
+This was done using known pairs of outcomes (n = 100):  
+  * Some were similar with different names  
+  * Some were different with similar names  
+
+The number of pairs successfully mapped by each model was compared to the expected number of pairs.
+
+## Assessing Biobert Model Performance
+
+This function uses a Spearman rank correlation, it has:  
+  * More focus on the order/ranking rather than the exact values  
+  * Robust to the fact that cosine similarities may be scaled differently across models  
+
+```{r}
+#| label: Model Assessment Function
+#| include: true
+#| echo: false
+
+model_assessment <- function(model){
+
+  # Biobert results
+  results_path <- file.path(mapping_output_dir, model, "test/test_one_test_two_test_similarity_matrix.csv")
+  test_sim_matrix <- as.matrix(fread(results_path), rownames = 1)
+  
+  test_observed <- data.frame(
+    terms_one = rownames(test_sim_matrix),
+    terms_two = colnames(test_sim_matrix),
+    cos_sim = diag(test_sim_matrix)
+  )
+
+  # Upper and lower bounds of expected cosine similarity
+  test_expected <- control_outcomes %>%
+    select(One_Outcome, Two_Outcome, Control, Expected_Cosine_Range)
+
+  test_expected$lower_expected <- NA
+  test_expected$upper_expected <- NA
+  
+  for (i in 1:nrow(test_expected)){
+    test_expected$lower_expected[i] <- unlist(strsplit(test_expected$Expected_Cosine_Range[i], split = "-"))[1]
+    test_expected$upper_expected[i] <- unlist(strsplit(test_expected$Expected_Cosine_Range[i], split = "-"))[2]
+  }
+  
+  # Combine observed and expected data for comparison
+  test_comparison <- left_join(test_observed, test_expected, by = c("terms_one" = "One_Outcome", "terms_two" = "Two_Outcome"))
+  
+  predicted_sim <- test_comparison$cos_sim
+  lower_bound <- as.numeric(test_comparison$lower_expected)
+  upper_bound <- as.numeric(test_comparison$upper_expected)
+  
+  cor_upper <- cor(predicted_sim, upper_bound, method = "spearman")
+  cor_lower <- cor(predicted_sim, lower_bound, method = "spearman")
+  
+  return(list(upper_limit = cor_upper, lower_limit = cor_lower))
+}
+
+```
+
+### Model: all-MiniLM-L6-v2
+```{r}
+#| label: all-MiniLM-L6-v2 assessmenet
+#| include: true
+#| echo: false
+
+model <- "all-MiniLM-L6-v2"
+
+all_MiniLM_L6_v2_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+all_MiniLM_L6_v2_results
+  
+```
+
+### Model: all-mpnet-base-v2
+```{r}
+#| label: all-mpnet-base-v2 assessment
+#| include: true
+#| echo: false
+
+model <- "all-mpnet-base-v2"
+
+all_mpnet_base_v2_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+all_mpnet_base_v2_results
+
+```
+
+### Model: kamalkraj/BioSimCSE-BioLinkBERT-BASE
+```{r}
+#| label: kamalkraj/BioSimCSE-BioLinkBERT-BASE assessment
+#| include: true
+#| echo: false
+
+model <- "kamalkraj/BioSimCSE-BioLinkBERT-BASE"
+
+BioSimCSE_BioLinkBERT_BASE_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+BioSimCSE_BioLinkBERT_BASE_results
+
+```
+
+### Model: pritamdeka/S-PubMedBert-MS-MARCO
+```{r}
+#| label: pritamdeka/S-PubMedBert-MS-MARCO assessment
+#| include: true
+#| echo: false
+
+model <- "pritamdeka/S-PubMedBert-MS-MARCO"
+
+S_PubMedBert_MS_MARCO_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+S_PubMedBert_MS_MARCO_results
+
+```
+
+### Model: UMCU/SapBERT-from-PubMedBERT-fulltext_bf16
+```{r}
+#| label: UMCU/SapBERT-from-PubMedBERT-fulltext_bf16 assessment
+#| include: true
+#| echo: false
+
+model <- "UMCU/SapBERT-from-PubMedBERT-fulltext_bf16"
+
+SapBERT_from_PubMedBERT_fulltext_bf16_results <- model_assessment(model = model)
+
+print(paste(model, "has the following Spearman's rank outputs for upper and lower expected bound:"))
+
+SapBERT_from_PubMedBERT_fulltext_bf16_results  
+```
+
+Given these results, the model with the highest Spearman's rank correlation for both upper and lower expected bounds was considered the best performing model for ontology mapping in this context.
+
+Chosen Biobert model: `UMCU/SapBERT-from-PubMedBERT-fulltext_bf16`
+
+This was used for the rest of the pipeline.
+
+## Assessing Pipeline Performance
+
+### Qwen performance
+
+```{r}
+#| label: qwen assessment
+#| include: true
+#| echo: false
+
+pipeline_output <- file.path(pipeline_output_dir, "test_one_test_two_test_full.csv") %>%
+  fread()
+
+test_info <- control_outcomes %>%
+  select(One_Outcome, Two_Outcome, Control, Relationship_Type)
+
+output_comparison <- full_join(pipeline_output, test_info, by = c("Predicted_term" = "One_Outcome", "Observed_term" = "Two_Outcome"))
+
+true_positives <- output_comparison %>%
+  filter(Control == "Positive") %>%
+  filter(!is.na(Confidence_Qwen))
+
+true_negatives <- output_comparison %>%
+  filter(Control == "Negative") %>%
+  filter(is.na(Confidence_Qwen))
+
+false_positives <- output_comparison %>%
+  filter(Control == "Negative") %>%
+  filter(!is.na(Confidence_Qwen))
+
+false_negatives <- output_comparison %>%
+  filter(Control == "Positive") %>%
+  filter(is.na(Confidence_Qwen))
+
+```
+
+```{r}
+#| label: Qwen Confusion Matrix
+#| include: true
+#| echo: false
+
+TP <- nrow(true_positives)
+FP <- nrow(false_positives)
+FN <- nrow(false_negatives)
+TN <- nrow(true_negatives)
+
+confusion_df <- data.frame(
+  Prediction = c("Positive", "Negative"),
+  Positive = c(TP, FN),
+  Negative = c(FP, TN)
+)
+
+confusion_df %>%
+  gt() %>%
+  tab_spanner(
+    label = "Observation",
+    columns = c(Positive, Negative)
+  ) %>%
+  tab_style(
+    style = cell_borders(
+      sides = "right",
+      color = "light grey",
+      weight = px(1.2)
+    ),
+    locations = list(
+      cells_body(columns = Prediction),
+      cells_column_labels(columns = Prediction)
+    )
+  )  
+
+```
+
+### Performance Metrics
+
+```{r}
+#| label: Qwen Performance Metrics
+#| include: true
+#| echo: false
+
+accuracy    <- (TP + TN) / (TP + FP + FN + TN)
+sensitivity <- TP / (TP + FN)
+specificity <- TN / (TN + FP)
+precision   <- TP / (TP + FP)
+npv         <- TN / (TN + FN)
+f1          <- 2 * precision * sensitivity / (precision + sensitivity)
+
+cat(paste("The proportion of all predictions that were correct.\nAccuracy:", round(accuracy, 2)))
+cat(paste("Of all the truly positive observations, how many did the model correctly identify?\nSensitivity:", round(sensitivity, 2)))
+cat(paste("Of all the truly negative observations, how many did the model correctly identify?\nSpecificity:", round(specificity, 2)))
+cat(paste("Of all the predictions labelled positive, how many were actually positive?\nPrecision:", round(precision, 2)))
+cat(paste("Of all the predictions labelled negative, how many were actually negative?\nNPV:", round(npv, 2)))
+cat(paste("A single measure that balances precision and sensitivity.\nF1 Score:", round(f1, 2)))
+
+```
+
+### Whole pipeline performance
+
+```{r}
+#| label: pipeline assessment
+#| include: true
+#| echo: false
+
+true_positives <- output_comparison %>%
+  filter(Control == "Positive") %>%
+  filter(Decision_Deepseek == "ACCEPT")
+
+true_negatives <- output_comparison %>%
+  filter(Control == "Negative") %>%
+  filter(Decision_Deepseek != "ACCEPT")
+
+false_positives <- output_comparison %>%
+  filter(Control == "Negative") %>%
+  filter(Decision_Deepseek == "ACCEPT")
+
+false_negatives <- output_comparison %>%
+  filter(Control == "Positive") %>%
+  filter(Decision_Deepseek != "ACCEPT")
+
+```
+
+```{r}
+#| label: Confusion Matrix
+#| include: true
+#| echo: false
+
+TP <- nrow(true_positives)
+FP <- nrow(false_positives)
+FN <- nrow(false_negatives)
+TN <- nrow(true_negatives)
+
+confusion_df <- data.frame(
+  Prediction = c("Positive", "Negative"),
+  Positive = c(TP, FN),
+  Negative = c(FP, TN)
+)
+
+confusion_df %>%
+  gt() %>%
+  tab_spanner(
+    label = "Observation",
+    columns = c(Positive, Negative)
+  ) %>%
+  tab_style(
+    style = cell_borders(
+      sides = "right",
+      color = "light grey",
+      weight = px(1.2)
+    ),
+    locations = list(
+      cells_body(columns = Prediction),
+      cells_column_labels(columns = Prediction)
+    )
+  )  
+
+```
+
+### Performance Metrics
+
+```{r}
+#| label: Performance Metrics
+#| include: true
+#| echo: false
+
+accuracy    <- (TP + TN) / (TP + FP + FN + TN)
+sensitivity <- TP / (TP + FN)
+specificity <- TN / (TN + FP)
+precision   <- TP / (TP + FP)
+npv         <- TN / (TN + FN)
+f1          <- 2 * precision * sensitivity / (precision + sensitivity)
+
+cat(paste("The proportion of all predictions that were correct.\nAccuracy:", round(accuracy, 2)))
+cat(paste("Of all the truly positive observations, how many did the model correctly identify?\nSensitivity:", round(sensitivity, 2)))
+cat(paste("Of all the truly negative observations, how many did the model correctly identify?\nSpecificity:", round(specificity, 2)))
+cat(paste("Of all the predictions labelled positive, how many were actually positive?\nPrecision:", round(precision, 2)))
+cat(paste("Of all the predictions labelled negative, how many were actually negative?\nNPV:", round(npv, 2)))
+cat(paste("A single measure that balances precision and sensitivity.\nF1 Score:", round(f1, 2)))
+
+```
+
+### Taking a closer look at the false positives and false negatives
+
+*False Positives*
+
+The model has predicted that the following unrelated pairs of outcomes are similar.
+
+```{r}
+#| label: False Positives
+#| include: true
+#| echo: false
+
+kable(false_positives) %>%
+  kable_styling() 
+
+```
+
+
+*False Negatives*
+
+The model has failed to predict that the following related pairs of outcomes are similar.
+
+```{r}
+#| label: False Negatives
+#| include: true
+#| echo: false
+
+kable(false_negatives) %>%
+  kable_styling() 
+
+```
+
+
+
+```{r}
+#| eval: false
+#| include: false
+
+quarto::quarto_render(
+  "scripts/07_Ontology_Mapping/075d_Mapping_Evaluation.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
+```

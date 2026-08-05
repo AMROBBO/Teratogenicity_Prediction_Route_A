@@ -35,12 +35,22 @@ input_dir <- file.path(interim_data, "ontology_mapping/output_data")
 #######################################################
 
 #predicted <- "omim"
-predicted <- "gpmap"
+#predicted <- "gpmap"
+predicted <- "one_test"
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#observed <- "all"
+#observed <- "cong"
+observed <- "two_test"
 
-output_base_dir <- file.path(processed_data, paste0(toupper(predicted), "_FAERS_outcomes"))
+if (observed == "all" | observed == "cong"){
+  observed_name <- "FAERS"
+  observed_search <- paste(tolower(observed_name), observed, sep = "_")
+} else if (observed == "two_test"){
+  observed_name <- "test"
+  observed_search <- "two_test"
+}
+
+output_base_dir <- file.path(processed_data, paste(toupper(predicted), observed_name, "outcomes", sep = "_"))
 
 if (!dir.exists(output_base_dir)) {
   dir.create(output_base_dir)
@@ -65,7 +75,7 @@ for (f in list.files(deepseek_results, full.names = T)){
   
   biobert_file <- list.files(biobert_results, pattern = paste0("^", drug, "$"), full.names = T) %>% 
     list.files(., full.names = T) %>% 
-    grep(paste(predicted, "faers", outcome_cat, "top_30.csv", sep = "_"), ., value = T)
+    grep(paste(predicted, observed_search, "top_30.csv", sep = "_"), ., value = T)
   
   if(length(biobert_file) > 0){
     
@@ -80,7 +90,7 @@ for (f in list.files(deepseek_results, full.names = T)){
     
     qwen_files <- list.files(qwen_results, pattern = drug, full.names = T) %>%
       list.files(., pattern = predicted, full.names = T) %>% 
-      list.files(., pattern = outcome_cat, full.names = T) %>% 
+      list.files(., pattern = observed, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
     message(paste(drug, "has", length(qwen_files), "qwen files"))
@@ -102,10 +112,11 @@ for (f in list.files(deepseek_results, full.names = T)){
     colnames(deepseek_all) <- deepseek_colnames
     
     deepseek_files <- list.files(f, pattern = predicted, full.names = T) %>% 
-      list.files(., pattern = outcome_cat, full.names = T) %>% 
+      list.files(., pattern = observed, full.names = T) %>% 
       list.files(., pattern = ".json", full.names = T)
     
     message(paste(drug, "has", length(deepseek_files), "deepseek files"))
+    
     for (j in deepseek_files){
       deepseek <- jsonlite::fromJSON(j) %>%  
         as.data.frame()
@@ -132,14 +143,14 @@ for (f in list.files(deepseek_results, full.names = T)){
       dir.create(output_dir)
     }
     
-    output_dir <- file.path(output_dir, outcome_cat)
+    output_dir <- file.path(output_dir, observed)
     if (!dir.exists(output_dir)) {
       dir.create(output_dir)
     }
     
-    output_file_full <- file.path(output_dir, paste(drug, predicted, "faers", outcome_cat, "full.csv", sep = "_"))
-    output_file_sig <- file.path(output_dir, paste(drug, predicted, "faers_LLM", outcome_cat, "sig.csv", sep = "_"))
-    output_file_accept <- file.path(output_dir, paste(drug, predicted, "faers_LLM", outcome_cat, "accepted.csv", sep = "_"))
+    output_file_full <- file.path(output_dir, paste(drug, predicted, observed_search, "full.csv", sep = "_"))
+    output_file_sig <- file.path(output_dir, paste(drug, predicted, tolower(observed_name), "LLM", observed, "sig.csv", sep = "_"))
+    output_file_accept <- file.path(output_dir, paste(drug, predicted, tolower(observed_name), "LLM", observed, "accepted.csv", sep = "_"))
     
     fwrite(results_merge, output_file_full)
     fwrite(results_merge_sig, output_file_sig)

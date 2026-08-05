@@ -34,11 +34,13 @@ model = SentenceTransformer(model_name)
 # Initialize input dataset 
 #   - Ensure only one predicted and one observed dataset is uncommented at a time
 #predicted_dataset = "omim"
-predicted_dataset = "gpmap"
+#predicted_dataset = "gpmap"
+predicted_dataset = "one_test"
 #observed_dataset = "onsides"
 #observed_dataset = "bumps"
 #observed_dataset = "faers_all"
-observed_dataset = "faers_cong"
+#observed_dataset = "faers_cong"
+observed_dataset = "two_test"
 
 # Base directories
 input_base_dir = base_dir / "ontology_mapping/input_data"
@@ -66,7 +68,7 @@ for drug_name in os.listdir(input_base_dir):
     print(f"Processing drug: {drug_name}")
     print(f"{'='*60}")
     
-    # Find OMIM file
+    # Find files
     predicted_file = None
     observed_file = None
     

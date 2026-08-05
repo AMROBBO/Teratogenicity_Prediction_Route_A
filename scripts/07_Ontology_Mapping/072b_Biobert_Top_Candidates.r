@@ -59,11 +59,13 @@ results_dir <- file.path(input_dir, model)
 #######################################################
 
 #predicted <- "omim"
-predicted <- "gpmap"
+#predicted <- "gpmap"
+predicted <- "one_test"
 #observed <- "onsides"
 #observed <- "bumps"
 #observed <- "faers_all"
-observed <- "faers_cong"
+#observed <- "faers_cong"
+observed <- "two_test"
 
 top_candidates <- 30
 

@@ -32,15 +32,27 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/DeepSeek")
 #######################################################
 
 #predicted <- "omim"
-predicted <- "gpmap"
+#predicted <- "gpmap"
+predicted <- "one_test"
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#observed <- "all"
+#observed <- "cong"
+observed <- "two_test"
 
 if (predicted == "gpmap"){
   dataset = "Genotype-Phenotype Map"
 } else if (predicted == "omim"){
   dataset = "OMIM"
+} else {
+  dataset <- "test"
+}
+
+if (observed == "all" | observed == "cong"){
+  observed_name <- "FAERS"
+  observed_search <- paste(tolower(observed_name), observed, sep = "_")
+} else if (observed == "two_test"){
+  observed_name <- "test"
+  observed_search <- "two_test"
 }
 
 #######################################################
@@ -50,7 +62,7 @@ if (predicted == "gpmap"){
 # Creating a query that will cycle through each OMIM term and its corresponding FAERS terms
 
 deepseek_prompt <- glue("
-You are adjudicating conceptual similarity between ", dataset, " disease terms and FAERS adverse event terms.
+You are adjudicating conceptual similarity between ", dataset, " disease terms and ", observed_name, " adverse event terms.
 Your task is STRICT conceptual evaluation.
 
 Use the following conceptual similarity rationale to assign a similarity score: 
@@ -62,7 +74,7 @@ Use the following conceptual similarity rationale to assign a similarity score:
 0: No association (REJECT)
 
 Rules:
-- The FAERS term must represent the same core pathology or a direct clinical manifestation of the ", dataset, " condition.
+- The ", observed_name, " term must represent the same core pathology or a direct clinical manifestation of the ", dataset, " condition.
 - Broader, narrower, or loosely related conditions should be rejected.
 - Shared anatomy alone is insufficient.
 - Prefer rejection over weak similarity.
@@ -86,14 +98,14 @@ make_deepseek_query <- function(term, matches){
        
        ', dataset, ' term: {term}
        
-       FAERS candidate terms (choose only from this list): {matches}
+       ', observed_name, ' candidate terms (choose only from this list): {matches}
        
        Return in a strict JSON format:
        {{
        "', predicted, '_term": "..."
        "adjudicated_matches": [
        {{
-       "faers_term": "..."
+       "',tolower(observed_name),'_term": "..."
        "decision": "ACCEPT" or "REJECT"
        "confidence": 0-5
        "brief_rationale": "..."
@@ -124,7 +136,7 @@ submit_query <- function(query, drug, outcome){
     dir.create(output_path)
   }
   
-  output_path <- file.path(output_path, outcome_cat)
+  output_path <- file.path(output_path, observed)
   
   if (!dir.exists(output_path)) {
     dir.create(output_path)
@@ -136,8 +148,8 @@ submit_query <- function(query, drug, outcome){
   outcome_collapsed <- gsub("\\(", "", outcome_collapsed)
   outcome_collapsed <- gsub("\\)", "", outcome_collapsed)
   
-  output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
-  output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))
+  output_file_full <- file.path(output_path, paste(outcome_collapsed, observed, "full.txt", sep = "_"))
+  output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", observed, ".json"))
   
   writeLines(content, output_file_full)
   
@@ -153,7 +165,6 @@ submit_query <- function(query, drug, outcome){
   write_json(data, output_file_json, pretty = TRUE)
 }
 
-
 #######################################################
 # Run model
 #######################################################
@@ -163,7 +174,7 @@ pull_model("deepseek-r1:8b")
 for (f in list.files(input_dir, full.names = T)){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
-  files <- list.files(file.path(f, predicted, outcome_cat), pattern = ".json", full.names = T)
+  files <- list.files(file.path(f, predicted, observed), pattern = ".json", full.names = T)
 
   if (length(files) > 0){
     for (i in files) {
@@ -172,16 +183,17 @@ for (f in list.files(input_dir, full.names = T)){
         as.data.frame()
       
       prediction_column <- paste0(predicted, "_term")
+      observation_column <- paste0("matches.", tolower(observed_name), "_term")
       
       prediction <- unique(qwen_output[[prediction_column]])
-      FAERS <- qwen_output %>% 
+      observation <- qwen_output %>% 
         filter(qwen_output[[prediction_column]] == prediction) %>% 
-        select(matches.faers_term) %>% 
+        select(all_of(observation_column)) %>% 
         as.list()
       
       message(glue("Submitting query for {prediction} for {drug}"))
       
-      query <- make_deepseek_query(prediction, FAERS)
+      query <- make_deepseek_query(prediction, observation)
       
       submit_query(query, drug, prediction)
     }

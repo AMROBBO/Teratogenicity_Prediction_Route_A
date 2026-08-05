@@ -31,15 +31,27 @@ output_dir <- file.path(interim_data, "ontology_mapping/output_data/Qwen")
 #######################################################
 
 #predicted <- "omim"
-predicted <- "gpmap"
+#predicted <- "gpmap"
+predicted <- "one_test"
 
-#outcome_cat <- "all"
-outcome_cat <- "cong"
+#observed <- "all"
+#observed <- "cong"
+observed <- "two_test"
 
 if (predicted == "gpmap"){
   dataset = "Genotype-Phenotype Map"
 } else if (predicted == "omim"){
   dataset = "OMIM"
+} else {
+  dataset = "test"
+}
+
+if (observed == "all" | observed == "cong"){
+  observed_name <- "FAERS"
+  observed_search <- paste(tolower(observed_name), observed, sep = "_")
+} else if (observed == "two_test"){
+  observed_name <- "test"
+  observed_search <- "two_test"
 }
 
 #######################################################
@@ -48,17 +60,17 @@ if (predicted == "gpmap"){
 
 # Creating a query that will cycle through each OMIM term and its corresponding FAERS terms
 
-qwen_prompt <- glue("You are performing controlled conceptual alignment between ", dataset, " disease terms and FAERS adverse event terms.
+qwen_prompt <- glue("You are performing controlled conceptual alignment between ", dataset, " disease terms and ", observed_name, " adverse event terms.
 
 Rules:
-- You may ONLY select terms from the provided FAERS list.
-- Do NOT invent or rephrase FAERS terms.
+- You may ONLY select terms from the provided ", observed_name, " list.
+- Do NOT invent or rephrase ", observed_name, " terms.
 - This is a similarity task, not strict equivalence.
-- Return all conceptually related FAERS terms.
+- Return all conceptually related ", observed_name, " terms.
 - If none are meaningfully related, return an empty list.
 - Be conservative. Avoid weak associations.
 
-For each FAERS term, assign a similarity score from 0 to 5 following the provided rationale:
+For each ", observed_name, " term, assign a similarity score from 0 to 5 following the provided rationale:
 5: Exact or near-perfect conceptual match
 4: Strong pathophysiological relationship (same disease category, direct complications)
 3: Moderate relationship (shared mechanisms, risk factors, or related conditions)
@@ -68,7 +80,7 @@ For each FAERS term, assign a similarity score from 0 to 5 following the provide
 
 For each match provide:
 - ", predicted, "_term
-- faers_term (exact string from list)
+- ", tolower(observed_name),"_term (exact string from list)
 - similarity_score (0 to 5)
 - brief_rationale (1 sentence grounded in shared pathology or anatomy)
 ")
@@ -81,7 +93,7 @@ make_qwen_query <- function(term, matches){
        
        ', dataset, ' term: {term}
        
-       FAERS candidate terms (choose only from this list):
+       ', observed_name, ' candidate terms (choose only from this list):
        {matches}
        
        Return in a strict JSON format:
@@ -89,7 +101,7 @@ make_qwen_query <- function(term, matches){
        "',predicted,'_term": "..."
        "matches": [
        {{
-       "faers_term": "..."
+       "',tolower(observed_name),'_term": "..."
        "similarity_score": 0.0-5.0
        "brief_rationale": "..."
        }}
@@ -119,7 +131,7 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
     dir.create(output_path)
   }
   
-  output_path <- file.path(output_path, outcome_cat)
+  output_path <- file.path(output_path, observed)
   
   if (!dir.exists(output_path)) {
     dir.create(output_path)
@@ -131,8 +143,8 @@ submit_qwen_query <- function(qwen_query, drug, outcome){
   outcome_collapsed <- gsub("\\(", "", outcome_collapsed)
   outcome_collapsed <- gsub("\\)", "", outcome_collapsed)
   
-  output_file_full <- file.path(output_path, paste(outcome_collapsed, outcome_cat, "full.txt", sep = "_"))
-  output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", outcome_cat, ".json"))
+  output_file_full <- file.path(output_path, paste(outcome_collapsed, observed, "full.txt", sep = "_"))
+  output_file_json <- file.path(output_path, paste0(outcome_collapsed, "_", observed, ".json"))
   
   writeLines(content, output_file_full)
   
@@ -166,7 +178,7 @@ pull_model("qwen2.5:7b")
 for (f in list.files(input_dir, full.names = T)){
   
   drug <- unlist(strsplit(f, split = "/"))[length(unlist(strsplit(f, split = "/")))]
-  file <- grep(paste(predicted, "faers", outcome_cat, "top_30.csv", sep = "_"), list.files(f, full.names = T), value = T)
+  file <- grep(paste(predicted, observed_search, "top_30.csv", sep = "_"), list.files(f, full.names = T), value = T)
 
   if (length(file) > 0){
     biobert_terms <- read.csv(file)
@@ -178,11 +190,11 @@ for (f in list.files(input_dir, full.names = T)){
       message(glue("Submitting query for {i} for {drug}"))
 
       prediction <- i
-      FAERS <- biobert_terms %>% 
+      observation <- biobert_terms %>% 
         filter(biobert_terms$Predicted_term == prediction) %>% 
         select(Observed_term)
       
-      query <- make_qwen_query(prediction, FAERS)
+      query <- make_qwen_query(prediction, observation)
       
       submit_qwen_query(query, drug, prediction)
     }
