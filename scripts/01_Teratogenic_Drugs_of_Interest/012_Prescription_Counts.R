@@ -23,7 +23,9 @@ load_dot_env("config.env")
 raw_data <- Sys.getenv("rawdatadir")
 interim_data <- Sys.getenv("interimdatadir")
 
-drug_list <- file.path(interim_data, "teratogenic_drugs.txt")
+drug_list <- fread(file.path(raw_data, "Drug_details.csv")) %>%
+  select(Drug, Category)
+
 prescription_files <- file.path(raw_data, "prescription_data/OpenPrescribing") %>%
   list.files(., full.names = T)
 
@@ -37,7 +39,7 @@ drugs <- fread(drug_list, header = F)
 colnames(drugs)[1] <- "Drug"
 
 #######################################################
-# Reading in prescription data and assigning to drugs
+# Reading in prescription data and summing yearly prescriptions
 #######################################################
 
 drug_yearly_prescriptions <- data.table(
@@ -88,50 +90,141 @@ for (i in prescription_files){
   
 }
 
+# Calculate the yearly average
 drug_yearly_prescriptions$Mean <- rowMeans(drug_yearly_prescriptions[,2:5],)
 
-drug_mapping <- c(
-  "adapalene" = "Adapalene",
-  "azilsartan_medoxomil" = "Azilsartan_medoxomil",
-  "candesartan_cilexetil" = "Candesartan_cilexetil",
-  "captopril diclofenac_sodium_(systemic)" = "Captopril",
-  "diclofenac_sodium_(topical)" = "Diclofenac",
-  "enalapril_hydrochlorothiazide" = "Enalapril",
-  "eprosartan" = "Eprosartan",
-  "folic_acid" = "Folate",
-  "fosinopril_sodium" = "Fosinopril",
-  "ibuprofen_(nsaid)" = "Ibuprofen",
-  "imidapril_hydrochloride" = "Imidapril",
-  "irbesartan" = "Irbesartan",
-  "isotretinoin_(systemic)" = "Isotretinoin",
-  "isotretinoin_(topical)" = "Isotretinoin",
-  "lenalidomide" = "Lenalidomide",
-  "lisinopril" = "Lisinopril",
-  "lithium_carbonate" = "Lithium_carbonate",
-  "losartan_potassium" = "Losartan",
-  "mefenamic_acid" = "Mefenamic_acid",
-  "meloxicam" = "Meloxicam",
-  "methotrexate" = "Methotrexate",
-  "modafinil" = "Modafinil",
-  "mycophenolate_mofetil_(systemic)" = "Mycophenolate_mofetil",
-  "nabumetone" = "Nabumetone",
-  "naproxen" = "Naproxen",
-  "olmesartan_medoxomil" = "Olmesartan",
-  "perindopril_arginine" = "Perindopril",
-  "quinapril_hydrochloride" = "Quinapril",
-  "ramipril" = "Ramipril",
-  "sodium_valproate" = "Valproate",
-  "telmisartan" = "Telmisartan",
-  "thalidomide_(immunomodulating)" = "Thalidomide",
-  "topiramate" = "Topiramate",
-  "trandolapril" = "Trandolapril",
-  "tretinoin_(systemic)" = "Tretinoin",
-  "valsartan" = "Valsartan",
-  "warfarin_sodium" = "Warfarin"
+#######################################################
+# Creating Map between Prescription Data and Drugs
+#######################################################
+
+# Drug name map
+drug_mapping <- data.table(
+  prescribing_names = c(
+    "adapalene_+_adapalene_benzoyl_peroxide",
+    "azilsartan_medoxomil",
+    "candesartan_cilexetil",
+    "captopril",
+    "clindamycin_tretinoin_+_tretinoin_(acne)",
+    "diclofenac_diethylammonium_+_diclofenac_sodium_(topical)",
+    "diclofenac_potassium_+_diclofenac_sodium_(systemic)",
+    "enalapril_hydrochlorothiazide_+_enalapril_maleate",
+    "eprosartan",
+    "felodipine_ramipril_+_ramipril",
+    "folic_acid_+_iron_and_folic_acid",
+    "fosinopril_sodium",
+    "ibuprofen_(nsaid)",
+    "imidapril_hydrochloride",
+    "irbesartan_+_irbesartan_hydchlorothiazide",
+    "isotretinoin_(systemic)",
+    "isotretinoin_(topical)",
+    "lenalidomide",
+    "lisinopril_+_lisinopril_hydrochlorothiazide",
+    "lithium_carbonate",
+    "losartan_potassium_+_losartan_potassium_hydchlorothiazide",
+    "mefenamic_acid",
+    "meloxicam",
+    "methotrexate_+_methotrexate_(rheumatism)",
+    "modafinil",
+    "mycophenolate_mofetil_(systemic)",
+    "nabumetone",
+    "naproxen_+_sumatriptan_succinate_naproxen_sodium",
+    "olmesartan_medoxomil_+_olmesartan_medoxomil_amlodipine_+_olmesartan_me…",
+    "perindopril_arginine_+_perindopril_arginine_indapamide_+_perindopril_e…",
+    "quinapril_hydrochloride_+_quinapril_hydrochloride_hydchlorothiazide",
+    "sacubitril_valsartan_+_valsartan_+_valsartan_amlodipine_+_valsartan_hy…",
+    "sodium_valproate",
+    "telmisartan_+_telmisartan_hydrochlorothiazide",
+    "thalidomide_(immunomodulating)",
+    "topiramate",
+    "trandolapril",
+    "tretinoin_(systemic)",
+    "warfarin_sodium"
+  ),
+  Drug = c(
+  "Adapalene",
+  "Azilsartan_medoxomil",
+  "Candesartan_cilexetil",
+  "Captopril",
+  "Tretinoin",
+  "Diclofenac",
+  "Diclofenac",
+  "Enalapril",
+  "Eprosartan",
+  "Ramipril",
+  "Folate",
+  "Fosinopril",
+  "Ibuprofen",
+  "Imidapril",
+  "Irbesartan",
+  "Isotretinoin",
+  "Isotretinoin",
+  "Lenalidomide",
+  "Lisinopril",
+  "Lithium_carbonate",
+  "Losartan",
+  "Mefenamic_acid",
+  "Meloxicam",
+  "Methotrexate",
+  "Modafinil",
+  "Mycophenolate_mofetil",
+  "Nabumetone",
+  "Naproxen",
+  "Olmesartan",
+  "Perindopril",
+  "Quinapril",
+  "Valsartan",
+  "Valproate",
+  "Telmisartan",
+  "Thalidomide",
+  "Topiramate",
+  "Trandolapril",
+  "Tretinoin",
+  "Warfarin"
+  )
 )
 
+fwrite(drug_mapping, file.path(raw_data, "prescription_data/OpenPrescription_Mapping.csv"))
 
-## Make this a data table to then save it for reference later
-# Check that all the prescription files are the best ones for that drug - some seem very small numbers
+#######################################################
 # Match drugs to prescription files
+#######################################################
+
+drug_yearly_prescriptions <- full_join(drug_mapping,
+                                       drug_yearly_prescriptions, 
+                                       by = c("prescribing_names" = "Drug"))
+
+drug_yearly_prescriptions$Drug <- gsub("_", " ", drug_yearly_prescriptions$Drug)
+
+drug_yearly_prescriptions <- full_join(drug_yearly_prescriptions,
+                                       drug_list,
+                                       by = "Drug")
+
+drug_yearly_prescriptions <- drug_yearly_prescriptions %>% 
+  relocate(Category, .after = Drug)
+
+#######################################################
+# Adding Topical/Systematic Labels
+#######################################################
+
+drug_yearly_prescriptions$Drug[
+  drug_yearly_prescriptions$prescribing_names == 
+    "diclofenac_diethylammonium_+_diclofenac_sodium_(topical)"] <- "Diclofenac (Topical)"
+
+drug_yearly_prescriptions$Drug[
+  drug_yearly_prescriptions$prescribing_names == 
+    "diclofenac_potassium_+_diclofenac_sodium_(systemic)"] <- "Diclofenac (Systematic)"
+
+drug_yearly_prescriptions$Drug[
+  drug_yearly_prescriptions$prescribing_names == 
+    "isotretinoin_(systemic)"] <- "Isotretinoin (Systematic)"
+
+drug_yearly_prescriptions$Drug[
+  drug_yearly_prescriptions$prescribing_names == 
+    "isotretinoin_(topical)"] <- "Isotretinoin (Topical)"
+
+
+#######################################################
 # Save
+#######################################################
+
+fwrite(drug_yearly_prescriptions, file.path(interim_data, "prescription_data/drug_yearly_prescriptions.csv"))
