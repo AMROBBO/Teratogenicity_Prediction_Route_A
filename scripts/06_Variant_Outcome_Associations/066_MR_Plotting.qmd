@@ -284,7 +284,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
@@ -525,7 +526,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
@@ -761,7 +763,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
@@ -986,7 +989,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
@@ -1210,7 +1214,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
@@ -1435,7 +1440,8 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE)
+  filter(sig == TRUE) %>%
+  unique()
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(

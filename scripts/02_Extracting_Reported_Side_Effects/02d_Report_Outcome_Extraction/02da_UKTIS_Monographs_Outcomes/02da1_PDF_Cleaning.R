@@ -328,7 +328,8 @@ for (f in monographs){
   # Extract drug name
   drug_name <- unlist(strsplit(f, split = "[/, ]"))
   drug_name <- drug_name[11:(length(drug_name)-4)]
-  drug_name <- paste(drug_name, collapse = "_")
+  drug_name <- paste(drug_name, collapse = "_") %>%
+    toupper()
   
   # Read report
   monograph <- pdftools::pdf_text(f)
