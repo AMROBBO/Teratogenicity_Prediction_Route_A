@@ -143,7 +143,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -173,6 +173,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -217,6 +229,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -252,7 +273,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -271,7 +292,7 @@ for (g in genes) {
 harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -284,12 +305,20 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE)
+
+harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )
@@ -383,7 +412,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -412,6 +441,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -459,6 +500,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -494,7 +544,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -513,7 +563,7 @@ for (g in genes) {
 harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -526,12 +576,20 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE)
+
+harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )
@@ -619,7 +677,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -649,6 +707,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -696,6 +766,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -731,7 +810,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -750,7 +829,7 @@ for (g in genes) {
 harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -763,12 +842,21 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE)
+
+  harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
+
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )
@@ -845,7 +933,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -875,6 +963,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -922,6 +1022,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -957,7 +1066,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -976,7 +1085,7 @@ for (g in genes) {
 harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -989,12 +1098,20 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE) 
+  
+  harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )
@@ -1071,7 +1188,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -1100,6 +1217,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -1147,6 +1276,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -1182,7 +1320,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -1201,7 +1339,7 @@ for (g in genes) {
 harmonised_data <- grep(gsub(" ", "_", drug), harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -1214,12 +1352,20 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE)
+
+  harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )
@@ -1297,7 +1443,7 @@ knitr::kable(
 # What are the targets
 targets <- drug_targets %>% 
   filter(Drug == drug) %>% 
-  select(c("Target", "Gene_Name")) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
   unique()
 
 knitr::kable(
@@ -1326,6 +1472,18 @@ mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>%
 
 # Adjusting p values for multiple testing
 mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+
+# Alligning direction of effect to the direction of drug effect on the target
+
+for (g in unique(mr_res_plot$gene)) {
+
+  drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
+                    unique()
+
+  if (drug_direction == "negative") {
+    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+  }
+}
 
 plot_df <- mr_res_plot %>% 
   mutate(
@@ -1373,6 +1531,15 @@ for (g in genes) {
 
   df <- subset(plot_df, gene.exposure == g)
 
+  effect_direction <- df$Direction %>% 
+                      unique()
+
+  if (effect_direction == "negative") {
+     x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+     x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
   p <- ggplot(
     df,
     aes(
@@ -1408,7 +1575,7 @@ for (g in genes) {
 
     labs(
       title = g,
-      x = "Odds Ratio per 1 SD increase in QTL",
+      x = x_label,
       y = "Drug Target Measure",
       colour = "Drug Target Variant"
     )
@@ -1427,7 +1594,7 @@ for (g in genes) {
 harmonised_data <- grep(drug, harmonised_files, value = TRUE) %>%
   fread() %>%
   filter(id.outcome %in% unique(studies$opengwas_id)) %>%
-  select(SNP, pval.outcome, originalname.outcome, gene.exposure)
+  select(exposure, SNP, beta.outcome, pval.outcome, originalname.outcome, gene.exposure)
 
 harmonised_data <- harmonised_data %>%
   group_by(originalname.outcome) %>%
@@ -1440,12 +1607,21 @@ harmonised_data <- harmonised_data %>%
   mutate(
     sig = pval.outcome_adj < 0.05
   ) %>%
-  filter(sig == TRUE) %>%
-  unique()
+  filter(sig == TRUE) 
+  
+harmonised_data$Risk <- ifelse(
+  harmonised_data$beta.outcome < 0, 
+  "Decreased Risk", 
+  "Increased Risk"
+)
+
+harmonised_data <- harmonised_data[order(harmonised_data$originalname.outcome, harmonised_data$SNP, harmonised_data$Risk),]
+
 
 if(nrow(harmonised_data) != 0) {
   knitr::kable(
-    harmonised_data,
+    harmonised_data %>% 
+      select(gene.exposure, exposure, SNP, originalname.outcome, pval.outcome_adj, Risk),
     digits = 100,
     caption = paste0("Significant SNP-Outcome Associations for ", drug)
     )

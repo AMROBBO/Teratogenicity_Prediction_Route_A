@@ -1873,7 +1873,7 @@ if(nrow(harmonised_data) != 0) {
 #| include: false
 
 quarto::quarto_render(
-  "scripts/06_Variant_Outcome_Associations/068_MR_Preg_Plotting.qmd",
+  "scripts/06_Variant_Outcome_Associations/069_MR_Preg_Plotting.qmd",
   quarto_args = c("--output-dir", resultsdir)
 )
 ```

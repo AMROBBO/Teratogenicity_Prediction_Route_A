@@ -13,7 +13,7 @@
 # Load in libraries
 #######################################################
 
-pak::pak("MRCIEU/TwoSampleMR")
+#pak::pak("MRCIEU/genetics.binaRies")
 
 library(dotenv)
 library(dplyr)
@@ -112,7 +112,8 @@ for(drug in unique(targets$Drug)){
   
   drug_targets <- targets %>%
     filter(Drug == drug) %>%
-    select(Drug, Target, Gene_Name, Pharmacological_Action)
+    select(Drug, Target, Gene_Name, Direction) %>%
+    unique()
 
   drug_targets_list <- paste0("^", 
                               paste(drug_targets$Gene_Name, 
@@ -174,7 +175,18 @@ for(drug in unique(targets$Drug)){
   exposure_clumped <- exposure_clumped %>% 
     mutate(f = ((beta.exposure/se.exposure)^2),
            r2 = 2 * (beta.exposure^2) * eaf.exposure * (1-eaf.exposure)
-    ) 
+    )
+  
+  #######################################################
+  # Add Direction of Action of Drug on Target
+  #######################################################
+  
+  exposure_clumped <- exposure_clumped %>%
+    left_join(., 
+              drug_targets, 
+              by = c("gene.exposure" = "Gene_Name"), 
+              relationship = "many-to-many") %>%
+    select(-c("Drug", "Target"))
   
   #######################################################
   # Extract Outcome Association Data
@@ -249,29 +261,32 @@ for(drug in unique(targets$Drug)){
     filter(mr_keep == TRUE)
   
   #######################################################
-  # Flipping to make exposure association positive (increasing gene expression/protein abundance)
+  # Flipping to make exposure association match drug action 
+  # (if drug action is unknown, exposure association is positive)
+  # Doesn't actually change the final MR result
   #######################################################
   
-  # For all negative exposure betas
-  neg <- harmonised$beta.exposure < 0
+  # Which directions need changing
+  to_change <- which((harmonised$Direction == "negative" & harmonised$beta.exposure > 0) |
+                       (harmonised$Direction == "positive" | harmonised$Direction == "unknown") & harmonised$beta.exposure < 0)
   
-  # Flipping betes
-  harmonised$beta.exposure[neg] <- -harmonised$beta.exposure[neg]
-  harmonised$beta.outcome[neg] <- -harmonised$beta.outcome[neg]
+  # Flipping betas
+  harmonised$beta.exposure[to_change] <- -harmonised$beta.exposure[to_change]
+  harmonised$beta.outcome[to_change] <- -harmonised$beta.outcome[to_change]
   
   # Flip effect and other alleles - exposure
-  ea <- harmonised$effect_allele.exposure[neg]
-  harmonised$effect_allele.exposure[neg] <- harmonised$other_allele.exposure[neg]
-  harmonised$other_allele.exposure[neg] <- ea
+  ea <- harmonised$effect_allele.exposure[to_change]
+  harmonised$effect_allele.exposure[to_change] <- harmonised$other_allele.exposure[to_change]
+  harmonised$other_allele.exposure[to_change] <- ea
   
   # Flip effect and other alleles - outcome
-  ea <- harmonised$effect_allele.outcome[neg]
-  harmonised$effect_allele.outcome[neg] <- harmonised$other_allele.outcome[neg]
-  harmonised$other_allele.outcome[neg] <- ea
+  ea <- harmonised$effect_allele.outcome[to_change]
+  harmonised$effect_allele.outcome[to_change] <- harmonised$other_allele.outcome[to_change]
+  harmonised$other_allele.outcome[to_change] <- ea
   
   # Flip Effect Allele frequency
-  harmonised$eaf.exposure[neg] <- 1 - harmonised$eaf.exposure[neg]
-  harmonised$eaf.outcome[neg] <- 1 - harmonised$eaf.outcome[neg]
+  harmonised$eaf.exposure[to_change] <- 1 - harmonised$eaf.exposure[to_change]
+  harmonised$eaf.outcome[to_change] <- 1 - harmonised$eaf.outcome[to_change]
   
   #######################################################
   # MR
@@ -289,6 +304,7 @@ for(drug in unique(targets$Drug)){
   #   - F statistic
   #   = R^2
   #   - Source (info.exposure)
+  #   - Direction of Drug action on target
   
   mr_res <- mr_res %>% 
     left_join(.,
@@ -296,7 +312,7 @@ for(drug in unique(targets$Drug)){
               by = join_by("id.exposure" == "exposure"),
               relationship = "many-to-many") %>% 
     select(id.exposure, id.outcome, method, nsnp, b, se, pval, gene.exposure, 
-           SNP, info.exposure, f, r2)
+           SNP, info.exposure, f, r2, Direction)
   
   # Adding info on outcome data:
   #   - Indication
@@ -313,7 +329,7 @@ for(drug in unique(targets$Drug)){
               drug_outcomes,
               by = join_by("id.outcome" == "id"),
               relationship = "many-to-many") %>% 
-    select(id.exposure, id.outcome, method, nsnp, b, se, pval, SNP, f, r2, 
+    select(id.exposure, id.outcome, method, nsnp, b, se, pval, SNP, f, r2, Direction, 
            gene.exposure, info.exposure, indication, openGWAS_outcome, 
            ncase.outcome, sample_size.outcome, category.outcome, consortium.outcome)
   
