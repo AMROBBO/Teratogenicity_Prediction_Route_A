@@ -23,20 +23,20 @@ load_dot_env("config.env")
 raw_data <- Sys.getenv("rawdatadir")
 interim_data <- Sys.getenv("interimdatadir")
 
-drug_list <- fread(file.path(raw_data, "Drug_details.csv")) %>%
-  select(Drug, Category)
+drug_list <- file.path(raw_data, "Drug_details.csv")
 
 prescription_files <- file.path(raw_data, "prescription_data/OpenPrescribing") %>%
   list.files(., full.names = T)
 
+mapping_output <- file.path(raw_data, "prescription_data/OpenPrescription_Mapping.csv")
 output_dir <- file.path(interim_data, "prescription_data")
 
 #######################################################
 # Reading in drugs of interest
 #######################################################
 
-drugs <- fread(drug_list, header = F)
-colnames(drugs)[1] <- "Drug"
+drugs <- fread(drug_list) %>%
+  select(Drug, Category)
 
 #######################################################
 # Reading in prescription data and summing yearly prescriptions
@@ -91,7 +91,10 @@ for (i in prescription_files){
 }
 
 # Calculate the yearly average
-drug_yearly_prescriptions$Mean <- rowMeans(drug_yearly_prescriptions[,2:5],)
+drug_yearly_prescriptions$Median <- apply(drug_yearly_prescriptions[, c("2022 Total", "2023 Total", "2024 Total", "2025 Total")], 
+                                          1, 
+                                          median) %>%
+  round()
 
 #######################################################
 # Creating Map between Prescription Data and Drugs
@@ -183,7 +186,7 @@ drug_mapping <- data.table(
   )
 )
 
-fwrite(drug_mapping, file.path(raw_data, "prescription_data/OpenPrescription_Mapping.csv"))
+fwrite(drug_mapping, mapping_output)
 
 #######################################################
 # Match drugs to prescription files
@@ -196,7 +199,7 @@ drug_yearly_prescriptions <- full_join(drug_mapping,
 drug_yearly_prescriptions$Drug <- gsub("_", " ", drug_yearly_prescriptions$Drug)
 
 drug_yearly_prescriptions <- full_join(drug_yearly_prescriptions,
-                                       drug_list,
+                                       drugs,
                                        by = "Drug")
 
 drug_yearly_prescriptions <- drug_yearly_prescriptions %>% 
