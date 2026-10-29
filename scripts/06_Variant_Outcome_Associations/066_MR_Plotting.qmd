@@ -171,18 +171,22 @@ mr_res <- MR_res_files[grep("Captopril", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
@@ -439,18 +443,22 @@ mr_res <- MR_res_files[grep("Methotrexate", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
@@ -705,18 +713,22 @@ mr_res <- MR_res_files[grep("Thalidomide", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
@@ -961,18 +973,22 @@ mr_res <- MR_res_files[grep("Tretinoin", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
@@ -1215,18 +1231,22 @@ mr_res <- MR_res_files[grep("Valproic_acid", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
@@ -1470,18 +1490,22 @@ mr_res <- MR_res_files[grep("Warfarin", MR_res_files)] %>%
 mr_res_plot <- mr_res[grep(chosen_outcomes, mr_res$id.outcome),] %>% 
   as.data.frame()
 
-# Adjusting p values for multiple testing
-mr_res_plot$pval_adj <- p.adjust(mr_res_plot$pval, method = "BH")
+# Adjusting p values for multiple testing (per outcome)
+mr_res_plot <- mr_res_plot %>%
+  group_by(openGWAS_outcome) %>%
+  mutate(pval_adj = p.adjust(pval, method = "BH")
+  ) %>%
+  ungroup()
 
 # Alligning direction of effect to the direction of drug effect on the target
 
-for (g in unique(mr_res_plot$gene)) {
+for (g in unique(mr_res_plot$gene.exposure)) {
 
   drug_direction <- mr_res_plot[which(mr_res_plot$gene.exposure == g), "Direction"] %>% 
                     unique()
 
   if (drug_direction == "negative") {
-    mr_res_plot[which(mr_res_plot$gene == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene == g), "b"]
+    mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"] <- -1 * mr_res_plot[which(mr_res_plot$gene.exposure == g), "b"]
   }
 }
 
