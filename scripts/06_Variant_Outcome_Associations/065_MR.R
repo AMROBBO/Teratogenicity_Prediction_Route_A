@@ -112,7 +112,7 @@ for(drug in unique(targets$Drug)){
   
   drug_targets <- targets %>%
     filter(Drug == drug) %>%
-    select(Drug, Target, Gene_Name, Direction) %>%
+    select(Drug, Target, Gene_Name, Action, Direction) %>%
     unique()
 
   drug_targets_list <- paste0("^", 
