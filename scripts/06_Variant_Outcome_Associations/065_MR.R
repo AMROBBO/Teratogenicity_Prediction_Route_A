@@ -263,7 +263,6 @@ for(drug in unique(targets$Drug)){
   #######################################################
   # Flipping to make exposure association match drug action 
   # (if drug action is unknown, exposure association is positive)
-  # Doesn't actually change the final MR result
   #######################################################
   
   # Which directions need changing

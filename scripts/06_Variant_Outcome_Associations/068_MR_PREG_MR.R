@@ -3,9 +3,10 @@
 ##
 # 1. Read in common variants associated with drug target genes - Use primary targets only
 # 2. Make sure they are all associated with gene (p value threshold?) 5x10-8
-# 3. Extract all association data for variants and all MR PREG outcomes
-# 4. Harmonise with variant association data
-# 5. MR
+# 3. Extract variants that have showed a significant effect on the drug indication
+# 4. Extract all association data for variants and all MR PREG outcomes
+# 5. Harmonise with variant association data
+# 6. MR
 
 #######################################################
 # Load in libraries
@@ -33,6 +34,7 @@ processed_data <- Sys.getenv("processeddatadir")
 
 targets_file <- file.path(interim_data, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
 variants_file <- file.path(interim_data, "predicted_outcomes/G_P_Map_Variants/all_variants.csv")
+sig_variants_dir <- file.path(interim_data, "predicted_outcomes/Primary_Indication_Mapping/Primary_Indication_Significant_SNPs")
 mrpreg_file <- file.path(raw_data, "predicted_outcomes/MR_PREG/ma_out_dat.txt")
 
 harm_output_dir <- file.path(interim_data, "predicted_outcomes/MR_PREG/MR_output")
@@ -53,6 +55,10 @@ targets <- fread(targets_file) %>%
 # Target variants
 variants <- fread(variants_file)
 
+# Variants showing a significant effect on drug indications
+sig_variants_files <- sig_variants_dir %>%
+  list.files(., full.names = T)
+  
 # MR PREG data
 mr_preg <- fread(mrpreg_file)
 
@@ -87,25 +93,46 @@ for (drug in unique(targets$Drug)){
   
   message("Processing drug: ", drug)
   #######################################################
+  # Identify Instruments Showing Effect on Drug Indications
+  #######################################################
+  sig_variants_file <- grep(paste0("/", drug, "_"), sig_variants_files, value = T)
+  
+  if(length(sig_variants_file) != 0){
+    
+    sig_variants <- sig_variants_file %>%
+      fread() %>% 
+      mutate(exposure_snp = paste(exposure, SNP))
+    
+  } else{
+    message(drug, " had no instruments showing evidence of effect on it's indications")
+    next
+  }
+  
+  #######################################################
   # Identify Exposure (Drug Target)
   #######################################################
   
   drug_targets <- targets %>%
     filter(Drug == drug) %>%
-    select(Drug, Target, Gene_Name, Pharmacological_Action)
+    select(Drug, Target, Gene_Name, Pharmacological_Action, Action, Direction)
   
   drug_targets_list <- paste0("^", 
                               paste(drug_targets$Gene_Name, 
                                     collapse = "$|^"), 
                               "$")
-  
+
   #######################################################
   # Instrument Selection
   #######################################################
   
   # Associated Variants
   drug_variants <- variants[grep(drug_targets_list, variants$drug_target),] %>% 
-    as.data.frame()
+    as.data.frame() %>%
+    mutate(exposure_snp = paste(trait_name, rsid.x))
+  
+  # Filter for variants with predicted effect on indications
+  drug_variants <- drug_variants %>%
+    filter(exposure_snp %in% sig_variants$exposure_snp)
   
   if (nrow(drug_variants) == 0){
     message("No variants for drug ", drug)
@@ -192,7 +219,7 @@ for (drug in unique(targets$Drug)){
     filter(mr_keep == TRUE)
   
   #######################################################
-  # Flipping to make exposure association positive (increasing gene expression/protein abundance)
+  # Flipping to make exposure association reflect drug action
   #######################################################
   
   # For all negative exposure betas

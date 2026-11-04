@@ -1,0 +1,509 @@
+---
+title: "MR Results - MR PREG"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+        fig-width: 8
+        fig-height: 10
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(data.table)
+library(tidyverse)
+library(jsonlite)
+library(dplyr)
+library(here)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+library(ieugwasr)
+library(TwoSampleMR)
+library(ggplot2)
+
+# Read environment file
+
+readRenviron(here("config.env"))
+
+raw_dir <- Sys.getenv("rawdatadir")
+interim_dir <- Sys.getenv("interimdatadir")
+processed_dir <- Sys.getenv("processeddatadir")
+resultsdir <- Sys.getenv("docsdir")
+
+targets_file <- file.path(interim_dir, "predicted_outcomes/Drug_Bank_targets/Drug_Bank_targets.csv")
+sig_snps_dir <- file.path(interim_dir, "predicted_outcomes/Primary_Indication_Mapping/Primary_Indication_Significant_SNPs")
+harmonised_dir <- file.path(interim_dir, "predicted_outcomes/MR_PREG/MR_output_Sig_SNPs")
+MR_res_dir <- file.path(processed_dir, "MR_PREG_MR_Results/Sig_SNPs")
+
+MR_PREG_outcome_names_file <- file.path(raw_dir, "predicted_outcomes/MR_PREG/MR_PREG_Outcome_Names.csv")
+
+```
+
+```{r}
+#| label: Reading in data
+#| include: false
+
+# Target of each drug
+drug_targets <- fread(targets_file) %>% 
+  filter(Primary == "Primary")
+
+# Side effect of each drug - This will be the extracted side effects from reports
+
+# Mapped Outcome data - This will include the MR PREG outcomes associated with the extracted side effects
+
+# Significant SNPs for each drug
+sig_snps_files <- list.files(sig_snps_dir, full.names = TRUE)
+
+# Harmonised data
+harmonised_files <- list.files(harmonised_dir, full.names = TRUE)
+
+# MR output
+MR_res_files <- list.files(MR_res_dir, full.names = TRUE)
+
+# MR PREG outcome names
+MR_PREG_outcome_names <- fread(MR_PREG_outcome_names_file)
+
+```
+
+# Drugs of Interest:
+The drugs chosen were those with any suggestion of being harmful in pregnancy. These drugs were then filtered for those with instruments that showed a significant causal effect on the primary indications of the drugs. The resulting drugs were:
+
+```{r}
+#| label: Drugs_of_Interest
+#| include: true
+#| echo: false
+
+drugs <- harmonised_files %>% 
+  gsub(".*/", "", .) %>% 
+  gsub("_MR_PREG_Harmonised.csv", "", .) %>% 
+  gsub("_", " ", .)
+
+knitr::kable(
+  drugs,
+  col.names = "Drug",
+  caption = "All drugs with significant causal effect on primary indication and any suggestion of being harmful in pregnancy",
+)
+
+```
+
+## To Include:
+  * Side effects identified by report extraction
+  * How these side effects map to MR PREG outcomes
+  * Therefore which MR PREG outcomes are relevant to the drug of interest
+
+
+```{r}
+#| label: Functions
+#| include: false
+#| echo: false
+
+extract_targets <- function(drug){
+
+  targets <- drug_targets %>% 
+  filter(Drug == drug) %>% 
+  select(c("Target", "Gene_Name", "Action", "Direction")) %>% 
+  unique()
+
+  if (nrow(targets) == 0) {
+    return(NULL)
+  } else {
+    return(targets)
+  }
+}
+
+extract_sig_snps <- function(drug){
+
+  sig_snps <- (grep(paste0("/", gsub(" ", "_", drug), "_"), sig_snps_files, value = TRUE)) %>%
+  fread() %>%
+  select(exposure, SNP, indication, Risk)
+
+  if (nrow(sig_snps) == 0) {
+    return(NULL)
+  } else {
+    return(sig_snps)
+  }
+}
+
+extract_MR_results <- function(drug){
+
+  # Read in MR results
+  mr_res <- MR_res_files[grep(paste0("/", gsub(" ", "_", drug), "_"), MR_res_files)] %>% 
+  fread()
+
+  # Add MR PREG full outcome names
+  mr_res <- left_join(mr_res, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+  return(mr_res)
+}
+
+create_plot_df <- function(mr_res){
+
+  # Add binary outcome column
+  mr_res$binary <- ifelse(!is.na(mr_res$ncase.outcome), "Yes", "No")
+
+  # Adjust p values for multiple testing (per outcome)
+  mr_res <- mr_res %>%
+    group_by(id.outcome) %>%
+    mutate(pval_adj = p.adjust(pval, method = "BH")
+    ) %>%
+    ungroup()
+
+  # Align direction of effect to the direction of drug effect on the target
+  for(g in unique(mr_res$gene.exposure)){
+    drug_direction <- mr_res[which(mr_res$gene.exposure == g), "Direction"] %>%
+      unique()
+    if(drug_direction == "negative"){
+      mr_res[which(mr_res$gene.exposure == g), "b"] <- -1 * mr_res[which(mr_res$gene.exposure == g), "b"]
+    }
+  }
+
+  plot_df <- mr_res %>%
+    mutate(
+      OR = if_else(binary == "Yes", exp(b), NA_real_),
+      lower = if_else(binary == "Yes",
+                      exp(b - 1.96 * se),
+                      b - 1.96 * se),
+      upper = if_else(binary == "Yes",
+                      exp(b + 1.96 * se),
+                      b + 1.96 * se),
+      outcome = factor(Meaning),
+      sig = pval < 0.05
+    )
+
+  plot_df$gene.snp <- paste0(
+    plot_df$gene.exposure,
+    "(",
+    plot_df$SNP,
+    ")"
+  )
+
+  snps <- unique(plot_df$gene.snp)
+
+  gene_cols <- setNames(
+    scales::hue_pal()(length(snps)),
+    snps
+  )
+
+  plot_df$fill_col <- ifelse(
+    plot_df$sig,
+    gene_cols[plot_df$gene.snp],
+    "white"
+  )
+
+  genes <- unique(plot_df$gene.exposure)
+
+  return(list(plot_df = plot_df, snps = snps, gene_cols = gene_cols, genes = genes))
+}
+
+create_bin_plot <- function(plot_df_bin, g, snps, gene_cols){
+
+  df <- subset(plot_df_bin, gene.exposure == g)
+
+  # If the drug is an inhibitor of the target, the plot will show decrease in exposure
+  effect_direction <- df$Direction %>%
+    unique()
+    
+  if (effect_direction == "negative"){
+    x_label <- "Odds Ratio per 1 SD decrease in QTL"
+  } else {
+    x_label <- "Odds Ratio per 1 SD increase in QTL"
+  }
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = OR,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
+  geom_point(
+    aes(colour = gene.snp),
+    shape = 21,
+    fill = df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 1, linetype = 2) +
+
+  scale_x_log10() +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
+  scale_colour_manual(values = gene_cols) +
+
+  theme_bw() +
+
+  theme(
+    axis.text.y = element_text(size = 8)
+  ) +
+
+  labs(
+    title = g,
+    x = x_label, 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+  
+  return(p)
+}
+
+create_cont_plot <- function(plot_df_cont, g, snps, gene_cols){
+
+  df <- subset(plot_df_cont, gene.exposure == g)
+
+  # If the drug is an inhibitor of the target, the plot will show decrease in exposure
+  effect_direction <- df$Direction %>%
+    unique()
+    
+  if (effect_direction == "negative"){
+    x_label <- "Effect Size per 1 SD decrease in QTL"
+  } else {
+    x_label <- "Effect Size per 1 SD increase in QTL"
+  }
+
+  p <- ggplot(
+    df,
+    aes(
+      y = id.exposure,
+      x = b,
+      xmin = lower,
+      xmax = upper
+    )
+  ) +
+
+  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+
+  geom_point(
+    aes(colour = gene.snp),
+    shape = 21,
+    fill = df$fill_col,
+    size = 2
+  ) +
+
+  geom_vline(xintercept = 0, linetype = 2) +
+
+  facet_wrap(~ outcome, 
+            scales = "free_x", 
+            ncol = 2) +
+  
+  scale_colour_manual(values = gene_cols) +
+
+  theme_bw() +
+
+  theme(
+    axis.text.y = element_text(size = 8)
+  ) +
+
+  labs(
+    title = g,
+    x = x_label, 
+    y = "Drug Target Measure", 
+    colour = "Drug Target Variant")
+
+  return(p)
+
+}
+
+extract_sig_SNP <- function(drug){
+
+  # Extract harmonised exposure-outcome data
+  harmonised_data <- grep(paste0("/",gsub(" ", "_", drug), "_"), harmonised_files, value = TRUE) %>%
+    fread() %>%
+    select(exposure, SNP, beta.exposure, beta.outcome, pval.exposure, pval.outcome, id.outcome, gene.exposure, f, r2, Action, Direction)
+
+  harmonised_data <- left_join(harmonised_data, MR_PREG_outcome_names, by = c("id.outcome" = "MR_PREG_Outcome"))
+
+  # Adjust p values for multiple testing (per outcome)
+  harmonised_data <- harmonised_data %>%
+    group_by(id.outcome) %>%
+    mutate(
+      pval.outcome_adj = p.adjust(pval.outcome, method = "BH")
+    ) %>%
+    ungroup()
+
+  # Filter for significant SNP-outcome associations
+  harmonised_data <- harmonised_data %>%
+    mutate(
+      sig = pval.outcome_adj < 0.05
+    ) %>%
+    filter(sig == TRUE) %>%
+    unique()
+
+  # Assigning risk due to drug target effect
+  harmonised_data <- harmonised_data %>%
+    mutate(
+      Risk = ifelse(
+        beta.outcome < 0, 
+        "Decreased Risk", 
+        "Increased Risk")
+    )
+
+  harmonised_data <- harmonised_data[order(harmonised_data$id.outcome, harmonised_data$SNP, harmonised_data$Risk),]
+
+  if(nrow(harmonised_data) != 0) {
+    
+    return(harmonised_data)
+
+  } else {
+  return(NULL)
+  }
+}
+
+```
+
+```{r}
+#| label: Drug_Results
+#| include: true
+#| echo: false
+#| output: asis
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 50
+
+
+for (drug in drugs) {
+
+  cat("\n\n# ", drug, "\n\n", sep = "")
+
+  cat("\n\n## ", "Side Effects", "\n\n", sep = "")
+
+  # What are the side effects
+
+  #knitr::kable(
+  #  side_effects,
+  #  caption = "Captopril Side Effects",
+  #)
+
+  cat("\n\n## ", "MR PREG outcomes are associated with these side effects", "\n\n", sep = "")
+
+  # What MR PREG outcomes are associated with these side effects
+
+  #knitr::kable(
+  #  mrpreg_outcomes,
+  #  caption = "Captopril MR PREG Outcomes",
+  #)
+
+  cat("\n\n## ", "Drug Targets", "\n\n", sep = "")
+
+  # What are the targets
+  targets <- extract_targets(drug)
+
+  if(is.null(targets)){
+    cat("No targets found for ", drug)
+    next
+  } else{
+    cat("\n\n")
+    cat(knitr::kable(
+      targets,
+      caption = paste(gsub("_", " ", drug), "Targets")), 
+      sep = "\n")
+    cat("\n\n")
+  }
+
+  cat("\n\n## ", "SNPs that displayed a significant effect on the primary indication of the drug", "\n\n", sep = "")
+
+  # SNPs that displayed a significant effect on the primary indication of the drug
+  sig_snps <- extract_sig_snps(drug)
+
+  if(is.null(sig_snps)){
+    cat("No SNPs that displayed a significant effect on primary indication found for ", drug)
+    next
+  } else{
+    cat("\n\n")
+    cat(knitr::kable(
+      sig_snps,
+      caption = paste(gsub("_", " ", drug), "Significant SNPs")), 
+      sep = "\n")
+    cat("\n\n")
+  }
+
+## MR Analysis Results
+
+#Once I have a good data frame of side effects for each drug extracted from the reports, I can select/highlight the relevant MR PREG outcomes for each drug.
+
+  cat("\n\n## ", "MR Results", "\n\n", sep = "")
+
+  # Read in MR results
+  mr_res <- extract_MR_results(drug)
+
+  if(is.null(mr_res)){
+    cat("No MR results found for ", drug)
+    next
+  }
+
+  # Create a data frame for plotting
+  plot_df<- create_plot_df(mr_res)
+
+  cat("\n\n### ", "Binary Outcomes", "\n\n", sep = "")
+
+  # Binary Outcomes
+
+  plot_df_bin <- plot_df$plot_df %>% filter(binary == "Yes")
+
+  for (g in plot_df$genes)  {
+
+    p <- create_bin_plot(plot_df_bin, g, plot_df$snps, plot_df$gene_cols)
+
+    suppressMessages(suppressWarnings(print(p)))
+
+  }
+
+  cat("\n\n### ", "Continuous Outcomes", "\n\n", sep = "")
+
+  # Continuous Outcomes
+
+  plot_df_cont <- plot_df$plot_df %>% filter(binary == "No")
+
+  for (g in plot_df$genes)  {
+
+    p <- create_cont_plot(plot_df_cont, g, plot_df$snps, plot_df$gene_cols)
+
+    suppressMessages(suppressWarnings(print(p)))
+
+  }
+
+  cat("\n\n## ", "SNP-Outcome Association Significance", "\n\n", sep = "")
+
+  # SNP-Outcome Association Significance
+
+  harmonised_data <- extract_sig_SNP(drug)
+
+  if(is.null(harmonised_data)){
+    cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
+    } else{
+    cat("\n\n")
+    cat(knitr::kable(
+      harmonised_data,
+      digits = 100,
+      caption = paste0("Significant SNP-Outcome Associations for ", drug)),
+      sep = "\n")
+    cat("\n\n")
+  }
+}
+
+```
+
+
+
+```{r}
+#| eval: false
+#| include: false
+
+quarto::quarto_render(
+  "scripts/06_Variant_Outcome_Associations/069_MR_Preg_Plotting_Sig_SNPs.qmd",
+  quarto_args = c("--output-dir", resultsdir)
+)
+```
