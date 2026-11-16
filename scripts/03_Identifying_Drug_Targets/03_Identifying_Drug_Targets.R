@@ -194,7 +194,7 @@ ter_targets <- ter_targets %>%
 
 #######################################################
 # Some Targets didn't get picked up
-# Manually adding them, bu searching in DrugBank
+# Manually adding them, by searching in DrugBank
 #######################################################
 
 missing_targets <- fread("Target|Drug|Action

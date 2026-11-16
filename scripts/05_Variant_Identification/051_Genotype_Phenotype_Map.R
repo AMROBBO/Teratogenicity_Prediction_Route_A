@@ -217,7 +217,5 @@ fwrite(unique_traits, file.path(output_dir, "G_P_Map_Outcomes", "unique_coloc_tr
 # The gene for the variants in coloc_groups in variants output, have gene name that doesn't match the metadata for the gene?
 # These variants are situated within the gene, but the association values don't correspond to it? - Should I include these? I have excluded for now
 
-# Do I need to clump the results?
 
 # Filter for canonical = YES?
-# Filter for eaf?
