@@ -218,4 +218,5 @@ fwrite(unique_traits, file.path(output_dir, "G_P_Map_Outcomes", "unique_coloc_tr
 # These variants are situated within the gene, but the association values don't correspond to it? - Should I include these? I have excluded for now
 
 
+
 # Filter for canonical = YES?

@@ -47,7 +47,7 @@ drug_list <- fread(drug_file) %>%
 
 drug_targets <- fread(targets_file) %>%
   filter(Primary == "Primary") %>%
-  select(Gene_Name, Drug) %>%
+  select(Gene_Name, Drug, Direction) %>%
   unique()
 
 drug_targets[Drug == "Valproic acid", Drug := "Valproate"]
@@ -93,7 +93,7 @@ outcome_totals <- outcome_totals %>%
 outcome_totals$OMIM_Outcomes <- outcome_totals$OMIM_Outcomes %>%
   replace(is.na(.), 0)
 
-outcome_totals <- outcome_totals[, c("Drug", "Category", "Gene_Name", "OMIM_Outcomes")]
+outcome_totals <- outcome_totals[, c("Drug", "Category", "Gene_Name", "Direction", "OMIM_Outcomes")]
 
 #######################################################
 # Save
@@ -101,128 +101,123 @@ outcome_totals <- outcome_totals[, c("Drug", "Category", "Gene_Name", "OMIM_Outc
 
 fwrite(outcome_totals, output_file)
 
+#######################################################
+# Reading in Target Matrix and extracting ordering
+#######################################################
+
+target_matrix <- fread(target_matrix_file)
+
+# Extract direction matrix
+mat <- target_matrix[-c(1, 2), -1, with = FALSE] %>%
+  as.matrix()
+
+mat <- apply(mat, 2, as.numeric)
+
+# Add row and column names
+rownames(mat) <- target_matrix$Target[-c(1, 2)]
+colnames(mat) <- as.character(target_matrix[2, -1, with = FALSE])
+
+# Extract ordering directly from direction matrix
+target_order <- rownames(mat)
+drug_order <- colnames(mat)
+
+# Drug categories
+drug_categories <- as.character(
+  target_matrix[1, -1, with = FALSE]
+)
+
+#######################################################
+# Creating OMIM outcome count matrix
+#######################################################
+
+dt <- as.data.table(copy(outcome_totals))
+
+# Remove rows without a valid Drug/Gene pair
+dt <- dt[
+  !is.na(Gene_Name) & Gene_Name != "" &
+  !is.na(Drug) & Drug != ""
+]
+
+# Aggregate OMIM outcome counts for each Drug/Gene pair
+side_effect_wide <- dcast(
+  dt,
+  Gene_Name ~ Drug,
+  value.var = "OMIM_Outcomes",
+  fun.aggregate = function(x) sum(x, na.rm = TRUE),
+  fill = 0
+)
+
+# Convert to matrix
+count_mat <- as.matrix(
+  side_effect_wide[, -1, with = FALSE]
+)
+
+storage.mode(count_mat) <- "numeric"
+
+rownames(count_mat) <- side_effect_wide$Gene_Name
+
+#######################################################
+# Align count matrix to direction matrix
+#######################################################
+
+# Initialise a matrix of zeroes with exactly the same
+# dimensions and names as the direction matrix
+side_effect_mat <- matrix(
+  0,
+  nrow = nrow(mat),
+  ncol = ncol(mat),
+  dimnames = dimnames(mat)
+)
+
+# Identify matching genes and drugs
+common_genes <- intersect(
+  rownames(count_mat),
+  rownames(side_effect_mat)
+)
+
+common_drugs <- intersect(
+  colnames(count_mat),
+  colnames(side_effect_mat)
+)
+
+# Transfer counts into the correctly aligned matrix
+side_effect_mat[
+  common_genes,
+  common_drugs
+] <- count_mat[
+  common_genes,
+  common_drugs,
+  drop = FALSE
+]
 
 #######################################################
 # Create Heatmap
 #######################################################
 
-#######################################################
-# Setting Drug and Target Orders to Match Target Matrix
-#######################################################
-
-# Reading in Target Matrix
-target_matrix <- fread(target_matrix_file)
-
-# Drug Order
-drug_order <- as.character(
-  target_matrix[2, -1, with = F]
-)
-
-# Drug categories order
-drug_categories <- as.character(
-  target_matrix[1, -1, with = FALSE]
-)
-
-# Target order
-target_order <- as.character(
-  target_matrix$Target[-c(1, 2)]
-)
-
-#######################################################
-# Creating Drug/Target Presence Matrix
-#######################################################
-
-presence_dt <- outcome_totals %>%
-  select(Drug, Gene_Name)
-
-# Mark every observed Drug/Gene pair as present
-presence_dt[, present := 1L]
-
-# Convert to wide format
-presence_wide <- dcast(
-  presence_dt,
-  Gene_Name ~ Drug,
-  value.var = "present",
-  fill = 0
-)
-
-presence_wide <- presence_wide[!is.na(presence_wide$Gene_Name)]
-
-# Convert to matrix
-presence_mat <- as.matrix(
-  presence_wide[, -1, with = FALSE]
-)
-
-rownames(presence_mat) <- presence_wide$Gene_Name
-
-# Apply the original target matrix ordering
-presence_mat <- presence_mat[
-  target_order,
-  drug_order,
-  drop = FALSE
-]
-
-#######################################################
-# Create the OMIM outcome matrix
-#######################################################
-
-outcome_wide <- dcast(
-  outcome_totals,
-  Gene_Name ~ Drug,
-  value.var = "OMIM_Outcomes",
-  fun.aggregate = function(x) {
-    
-    # Keep NA if there are no actual values
-    if (all(is.na(x))) {
-      NA_real_
-    } else {
-      sum(x, na.rm = TRUE)
-    }
-  }
-)
-
-outcome_wide <- outcome_wide[!is.na(outcome_wide$Gene_Name)]
-
-# Convert to matrix
-outcome_mat <- as.matrix(
-  outcome_wide[, -1, with = FALSE]
-)
-
-rownames(outcome_mat) <- outcome_wide$Gene_Name
-
-# Apply the original target matrix ordering
-outcome_mat <- outcome_mat[
-  target_order,
-  drug_order,
-  drop = FALSE
-]
-
-#######################################################
-# Drug category colours
-#######################################################
-
-category_levels <- unique(drug_categories)
-
+# Colours for drug categories
 category_colours <- setNames(
   grDevices::hcl.colors(
-    length(category_levels),
+    length(unique(drug_categories)),
     palette = "Spectral"
   ),
-  category_levels
+  unique(drug_categories)
+)
+
+# Colours for direction of action
+direction_colours <- c(
+  "0" = "white",       # No relationship
+  "1" = "#36b9e4",   # Positive
+  "2" = "#ea8cc6",        # Negative
+  "3" = "grey70"       # Unknown
 )
 
 # Drug category annotation
-
 ha <- HeatmapAnnotation(
-  
-  Category = factor(
-    drug_categories,
-    levels = category_levels
-  ),
+  Category = drug_categories,
   
   col = list(
     Category = category_colours
-  ),
+    ),
   
   show_annotation_name = FALSE,
   
@@ -233,93 +228,70 @@ ha <- HeatmapAnnotation(
   )
 )
 
-#######################################################
-# Create heatmap
-#######################################################
-
 matrix_plot <- Heatmap(
-  
-  presence_mat,
-  
-  name = "Drug-Gene",
-  
-  # Keep original ordering
+
+  mat,
+
+  name = "Direction",
+
   cluster_rows = FALSE,
   cluster_columns = FALSE,
-  
-  # Group drugs according to their category
-  column_split = factor(
-    drug_categories,
-    levels = category_levels
-  ),
-  
-  # No large gaps between categories
-  column_gap = unit(0.5, "mm"),
-  
-  # One colour for presence, white for absence
-  col = c(
-    "0" = "white",
-    "1" = "steelblue"
-  ),
-  
-  # Category annotation
+
+  column_split = drug_categories,
+  column_gap = grid::unit(0.5, "mm"),
+
+  # Direction colours
+  col = direction_colours,
+
+  # Drug category colours
   bottom_annotation = ha,
-  
+
   # Drug names
   show_column_names = TRUE,
   column_names_gp = gpar(fontsize = 10),
   column_title = "Drug",
   column_title_side = "bottom",
-  
+
   # Target names
   show_row_names = TRUE,
   row_names_gp = gpar(fontsize = 10),
   row_title = "Target",
   row_title_side = "right",
-  
-  
-  # Add OMIM outcome count inside each present cell
 
-  cell_fun = function(
-    j, i, x, y, width, height, fill
-  ) {
-    
-    # Only write text if the Drug/Gene pair exists
-    if (presence_mat[i, j] == 1) {
-      
-      value <- outcome_mat[i, j]
-      
-      # Only display a value if OMIM_Outcomes is available
-      if (!is.na(value)) {
-        
-        grid.text(
-          label = format(
-            value,
-            trim = TRUE
-          ),
-          x = x,
-          y = y,
-          gp = gpar(
-            fontsize = 10,
-            col = "white"
-          )
+  # Display side-effect counts inside cells
+  cell_fun = function(j, i, x, y, width, height, fill) {
+
+    value <- side_effect_mat[i, j]
+
+    if (mat[i, j] != 0) {
+
+      grid.text(
+        label = as.character(value),
+        x = x,
+        y = y,
+        gp = gpar(
+          fontsize = 8,
+          col = "white"
         )
-      }
+      )
     }
   },
-  
-  # Don't show the binary heatmap legend
-  show_heatmap_legend = FALSE,
-  
-  # Thin light gridlines
-  rect_gp = gpar(
+
+  show_heatmap_legend = TRUE,
+
+  heatmap_legend_param = list(
+    title = "Direction of action",
+    at = c(1, 2, 3),
+    labels = c("Positive", "Negative", "Unknown")
+  ),
+
+  rect_gp = grid::gpar(
     col = "grey90",
     lwd = 0.2
   ),
 
-  # Dark borders around the column slices
   border = TRUE,
-  
+
   border_gp = grid::gpar(
     col = "grey30",
     lwd = 1

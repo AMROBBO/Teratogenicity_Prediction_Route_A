@@ -139,8 +139,8 @@ category_colours <- setNames(
 # Colours for direction of action
 direction_colours <- c(
   "0" = "white",       # No relationship
-  "1" = "lightblue",   # Positive
-  "2" = "pink",   # Negative
+  "1" = "#36b9e4",   # Positive
+  "2" = "#ea8cc6",        # Negative
   "3" = "grey70"       # Unknown
 )
 

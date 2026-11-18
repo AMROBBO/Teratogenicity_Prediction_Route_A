@@ -6,6 +6,7 @@
 # 7. Extract all association data for variants and all mapped openGWAS outcomes
 # 8. Identify largest sample size outcome dataset for each indication
 # 9. Harmonise with variant association data
+#     Note: Harmonised data has been orientated according to the direction of action of the drug on the target gene (if known).
 # 10. MR
 ##
 

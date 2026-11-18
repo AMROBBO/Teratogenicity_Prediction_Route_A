@@ -1,5 +1,7 @@
 ##
-# Using DrugBank data to identify targets of teratogenic drugs of interest
+# Using DrugBank data to identify targets of teratogenic drugs of interest including the method of action of the drug on the target.
+#     DrugBank has labelled Imidapril action on ACE as a modulator (ie. unknown direction). This is manually changed
+#     here to an inhibitor (negative direction) based on knowledge and ChEMBL data.
 ##
 
 #######################################################
@@ -289,6 +291,13 @@ ter_targets <- ter_targets %>%
 ter_targets$Primary <- ifelse(ter_targets$Pharmacological_Action == TRUE,
                               "Primary",
                               "Alternative")
+
+#######################################################
+# Changing Imidapril action on ACE to inhibitor (negative direction)
+#######################################################
+
+ter_targets[which(ter_targets$Drug == "Imidapril" & ter_targets$Gene_Name == "ACE"), "Action"] <- "inhibitor"
+ter_targets[which(ter_targets$Drug == "Imidapril" & ter_targets$Gene_Name == "ACE"), "Direction"] <- "negative"
 
 #######################################################
 # Save
