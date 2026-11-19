@@ -91,7 +91,8 @@ drugs <- read.csv(drugs_file) %>%
 knitr::kable(
     drugs,
     caption = "List of Drugs and their class"
-)
+    ) %>%
+    kable_styling(font_size = 12)
 
 drugs_list <- drugs$Drug
 
@@ -596,7 +597,7 @@ sig_results_table <- function(sig_results, mr_preg_sig_results){
     sig_results_table <- sig_results$harmonised_data %>%
       select(exposure, SNP, indication, originalname.outcome, Action, Risk) %>%
       left_join(., mr_preg_sig_results %>% select(exposure, Meaning, Risk), by = "exposure", relationship = "many-to-many") %>%
-      arrange(exposure, SNP, indication, Meaning, Risk.x)
+      arrange(Meaning, Risk.x, exposure, SNP, indication)
 
     return(sig_results_table)
 
@@ -618,183 +619,279 @@ sig_results_table <- function(sig_results, mr_preg_sig_results){
 
 for (drug in drugs_list) {
 
-    cat("\n\n# ", drug, "\n\n", sep = "")
+  cat("\n\n# ", drug, "\n\n", sep = "")
 
-    drug <- gsub(" ", "_", drug)
-    # Primary Indications
-    cat("\n\n## ", "Primary Indications", "\n\n", sep = "")
+  drug <- gsub(" ", "_", drug)
 
-    indications <- extract_indications(drug)
+  # Primary Indications
 
-    if (nrow(indications) == 0) {
-    cat("No indications found for ", drug)
-    next
-    } else{
-    cat("\n\n")
-    cat(knitr::kable(
-        indications,
-        caption = paste(gsub("_", " ", drug), "Primary Indications")),
-        sep = "\n")
-    cat("\n\n")
-    }
+  cat("\n\n## ", "Primary Indications", "\n\n", sep = "")
 
-    # Chosen openGWAS Outcome
-    cat("\n\n## ", "Chosen openGWAS Outcome", "\n\n", sep = "")
+  indications <- extract_indications(drug)
 
-    openGWAS_studies <- extract_chosen_openGWAS_outcomes(drug)
+  if (nrow(indications) == 0) {
+  cat("No indications found for ", drug)
+  next
+  } else{
+  cat("\n\n")
+  cat(knitr::kable(
+      indications,
+      caption = paste(gsub("_", " ", drug), "Primary Indications"))%>%
+          kable_styling(font_size = 14),
+      sep = "\n")
+  cat("\n\n")
+  }
 
-    if(is.null(openGWAS_studies)){
-    cat("No chosen openGWAS outcomes found for ", drug)
-    next
-    } else{
-    cat("\n\n")
-    cat(knitr::kable(
-        openGWAS_studies$openGWAS_studies,
-        caption = paste(gsub("_", " ", drug), "Chosen OpenGWAS Outcomes")), 
-        sep = "\n")
-    cat("\n\n")
-    }
+  # Chosen openGWAS Outcome
 
-    # Drug Targets
-    cat("\n\n## ", "Drug Targets", "\n\n", sep = "")
+  cat("\n\n## ", "Chosen openGWAS Outcome", "\n\n", sep = "")
 
-    targets <- extract_targets(drug)
+  openGWAS_studies <- extract_chosen_openGWAS_outcomes(drug)
 
-    if(is.null(targets)){
-    cat("No targets found for ", drug)
-    next
-    } else{
-    cat("\n\n")
-    cat(knitr::kable(
-        targets$targets,
-        caption = paste(gsub("_", " ", drug), "Targets")), 
-        sep = "\n")
-    cat("\n\n")
-    }
+  if(is.null(openGWAS_studies)){
+  cat("No chosen openGWAS outcomes found for ", drug)
+  next
+  } else{
+  cat("\n\n")
+  cat(knitr::kable(
+      openGWAS_studies$openGWAS_studies,
+      caption = paste(gsub("_", " ", drug), "Chosen OpenGWAS Outcomes"))%>%
+          kable_styling(font_size = 14), 
+      sep = "\n")
+  cat("\n\n")
+  }
 
-    # MR Results for Primary Indications
-    cat("\n\n## ", "MR Results for Primary Indications", "\n\n", sep = "")
+  # Drug Targets
 
-    mr_res <- extract_MR_result(drug, openGWAS_studies$outcome_ids)
+  cat("\n\n## ", "Drug Targets", "\n\n", sep = "")
 
-    if(is.null(mr_res)){
-    cat("No MR results found for ", drug)
-    next
-    }
+  targets <- extract_targets(drug)
 
-    plot_df <- create_plot_df(mr_res)
+  if(is.null(targets)){
+  cat("No targets found for ", drug)
+  next
+  } else{
+  cat("\n\n")
+  cat(knitr::kable(
+      targets$targets,
+      caption = paste(gsub("_", " ", drug), "Targets")) %>%
+          kable_styling(font_size = 14), 
+      sep = "\n")
+  cat("\n\n")
+  }
 
-    # Create plots for each target gene
+  # MR Results for Primary Indications
 
-    for(g in plot_df$genes){
+  cat("\n\n## ", "MR Results for Primary Indications", "\n\n", sep = "")
 
-    p <- create_plot(plot_df$plot_df, g, plot_df$snps, plot_df$gene_cols)
+  mr_res <- extract_MR_result(drug, openGWAS_studies$outcome_ids)
 
-    suppressMessages(suppressWarnings(print(p)))
+  if(is.null(mr_res)){
+  cat("No MR results found for ", drug)
+  next
+  }
 
-    }
+  plot_df <- create_plot_df(mr_res)
 
-    # Extract SNPs with a significant effect on an indication
+  # Create plots for each target gene
 
-    sig_results <- extract_sig_SNP(drug, openGWAS_studies$openGWAS_studies)
+  for(g in plot_df$genes){
 
-    # Only continue if not Null
+  p <- create_plot(plot_df$plot_df, g, plot_df$snps, plot_df$gene_cols)
 
-    if(is.null(sig_results)){
-    cat("No significant SNP-outcome associations found for ", drug)
-    next
-    }
+  suppressMessages(suppressWarnings(print(p)))
 
-    # MR Results for MR PREG Outcomes
-    cat("\n\n## ", "MR Results for MR PREG Outcomes", "\n\n", sep = "")
+  }
 
-    mr_preg_res <- extract_MR_PREG_results(drug)
+  # Extract SNPs with a significant effect on an indication
 
-    # Only plotting significant MR PREG results
+  sig_results <- extract_sig_SNP(drug, openGWAS_studies$openGWAS_studies)
 
-    mr_preg_plot_df <- create_mr_preg_plot_df(mr_preg_res)
+  # Only continue if not Null
+
+  if(is.null(sig_results)){
+  cat("No significant SNP-outcome associations found for ", drug)
+  next
+  }
+
+  # MR Results for MR PREG Outcomes
+
+  cat("\n\n## ", "MR Results for MR PREG Outcomes", "\n\n", sep = "")
+
+  mr_preg_res <- extract_MR_PREG_results(drug)
+
+  # Only plotting significant MR PREG results
+
+  mr_preg_plot_df <- create_mr_preg_plot_df(mr_preg_res)
+
+  # Plotting MR PREG results for instruments with a protective effect on indications (those that decrease risk of indication)
+  
+  cat("\n\n### ", "Protective Instruments", "\n\n", sep = "")
+
+  # Results for protective instruments (those that decrease risk of indication)
+
+  prot_snps <- sig_results$harmonised_data %>%
+      filter(Risk == "Decreased Risk") %>%
+      select(exposure, SNP)
+
+  if(nrow(prot_snps) != 0){
+
+    mr_preg_plot_df_prot <- mr_preg_plot_df$plot_df %>%
+      semi_join(prot_snps, by = c("SNP", "id.exposure" = "exposure"))
+
+    cat("\n\n", "Binary Outcomes", "\n\n", sep = "")
 
     # Binary Outcomes
-    cat("\n\n### ", "Binary Outcomes", "\n\n", sep = "")
 
-    mr_preg_plot_df_bin <- mr_preg_plot_df$plot_df %>% filter(binary == "Yes")
+    mr_preg_plot_df_prot_bin <- mr_preg_plot_df_prot %>% 
+      filter(binary == "Yes")
 
-    if(nrow(mr_preg_plot_df_bin) == 0){
+    if(nrow(mr_preg_plot_df_prot_bin) == 0){
 
     cat("No significant binary MR PREG results found for ", drug)
 
     } else{
-        for (g in mr_preg_plot_df$genes)  {
+      for (g in mr_preg_plot_df$genes)  {
 
-        p <- create_bin_plot(mr_preg_plot_df_bin, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
+      p <- create_bin_plot(mr_preg_plot_df_prot_bin, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
 
-        suppressMessages(suppressWarnings(print(p)))
+      suppressMessages(suppressWarnings(print(p)))
 
-        }
+      }
     }
+
+    cat("\n\n", "Continuous Outcomes", "\n\n", sep = "")
 
     # Continuous Outcomes
-    cat("\n\n### ", "Continuous Outcomes", "\n\n", sep = "")
 
-    mr_preg_plot_df_cont <- mr_preg_plot_df$plot_df %>% filter(binary == "No")
+    mr_preg_plot_df_prot_cont <- mr_preg_plot_df_prot %>% 
+      filter(binary == "No")
 
-    if(nrow(mr_preg_plot_df_cont) == 0){
-    cat("No significant continuous MR PREG results found for ", drug)
+    if(nrow(mr_preg_plot_df_prot_cont) == 0){
+
+      cat("No significant continuous MR PREG results found for ", drug)
+      
     } else{
-        for (g in mr_preg_plot_df$genes)  {
+      for (g in mr_preg_plot_df$genes)  {
 
-        p <- create_cont_plot(mr_preg_plot_df_cont, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
+      p <- create_cont_plot(mr_preg_plot_df_prot_cont, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
 
-        suppressMessages(suppressWarnings(print(p)))
+      suppressMessages(suppressWarnings(print(p)))
 
-        }
+      }
     }
-
+  }
     # SNP-Outcome Associations for those that are associated with primary indication and MR PREG outcomes, including direction of effect
 
-    mr_preg_sig_results <- extract_mr_preg_sig_SNP(drug)
+  mr_preg_sig_results <- extract_mr_preg_sig_SNP(drug)
 
-    # Present all significant SNP-outcome associations for those that are associated with primary indication and MR PREG outcomes, including direction of effect
-    cat("\n\n## ", "Significant SNP-Outcome Associations", "\n\n", sep = "")
+  # Present all significant SNP-outcome associations for those that are associated with primary indication and MR PREG outcomes, including direction of effect
+  cat("\n\n## ", "Significant SNP-Outcome Associations", "\n\n", sep = "")
 
-    final_sig_results_table <- sig_results_table(sig_results, mr_preg_sig_results)
+  final_sig_results_table <- sig_results_table(sig_results, mr_preg_sig_results)
 
-    if(is.null(final_sig_results_table)){
-    cat("No significant associations found for ", drug)
-    next
-    }
+  if(is.null(final_sig_results_table)){
+  cat("No significant associations found for ", drug)
+  next
+  }
 
-    cat("\n\n### ", "Instruments with Protective Effects on Indications", "\n\n", sep = "")
+  cat("\n\n### ", "Instruments with Protective Effects on Indications", "\n\n", sep = "")
 
     protective_results_table <- final_sig_results_table %>%
         filter(Risk.x == "Decreased Risk")
 
-    if(nrow(protective_results_table) == 0){
-        cat("No protective effects found for", drug, "on indications")
+  if(nrow(protective_results_table) == 0){
+      cat("No protective effects found for", drug, "on indications")
+  } else{
+      cat("\n\n")
+      cat(
+        knitr::kable(
+          protective_results_table %>%
+            select(exposure, SNP, indication, originalname.outcome, Meaning, Risk.y),
+          caption = paste(gsub("_", " ", drug), "Significant Associations") 
+        )%>%
+          kable_styling(font_size = 14), 
+        sep = "\n")
+      cat("\n\n")
+  }
+
+  # Plotting MR PREG results for instruments with a harmful effect on indications (those that increase risk of indication)
+  
+  cat("\n\n### ", "Harmful Instruments", "\n\n", sep = "")
+
+  # Results for harmful instruments (those that increase risk of indication)
+
+  harm_snps <- sig_results$harmonised_data %>%
+      filter(Risk == "Increased Risk") %>%
+      select(exposure, SNP)
+
+  if(nrow(harm_snps) != 0){
+
+    mr_preg_plot_df_harm <- mr_preg_plot_df$plot_df %>%
+      semi_join(harm_snps, by = c("SNP", "id.exposure" = "exposure"))
+
+    cat("\n\n", "Binary Outcomes", "\n\n", sep = "")
+
+    # Binary Outcomes
+
+    mr_preg_plot_df_harm_bin <- mr_preg_plot_df_harm %>% 
+      filter(binary == "Yes")
+
+    if(nrow(mr_preg_plot_df_harm_bin) == 0){
+
+    cat("No significant binary MR PREG results found for ", drug)
+
     } else{
-        cat("\n\n")
-        cat(knitr::kable(
-            protective_results_table,
-            caption = paste(gsub("_", " ", drug), "Significant Associations")), 
-            sep = "\n")
-        cat("\n\n")
+      for (g in mr_preg_plot_df$genes)  {
+
+      p <- create_bin_plot(mr_preg_plot_df_harm_bin, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
+
+      suppressMessages(suppressWarnings(print(p)))
+
+      }
     }
 
-    cat("\n\n### ", "Instruments with Harmful Effects on Indications", "\n\n", sep = "")
+    cat("\n\n", "Continuous Outcomes", "\n\n", sep = "")
 
-    harmful_results_table <- final_sig_results_table %>%
-        filter(Risk.x == "Increased Risk")
+    # Continuous Outcomes
 
-    if(nrow(harmful_results_table) == 0){
-    cat("No harmful effects found for", drug, "on indications")
+    mr_preg_plot_df_harm_cont <- mr_preg_plot_df_harm %>% 
+      filter(binary == "No")
+
+    if(nrow(mr_preg_plot_df_harm_cont) == 0){
+
+      cat("No significant continuous MR PREG results found for ", drug)
+      
     } else{
+      for (g in mr_preg_plot_df$genes)  {
+
+      p <- create_cont_plot(mr_preg_plot_df_harm_cont, g, mr_preg_plot_df$snps, mr_preg_plot_df$gene_cols)
+
+      suppressMessages(suppressWarnings(print(p)))
+
+      }
+    }
+  }
+
+  cat("\n\n## ", "Significant SNP-Outcome Associations", "\n\n", sep = "")
+
+  cat("\n\n### ", "Instruments with Harmful Effects on Indications", "\n\n", sep = "")
+
+  harmful_results_table <- final_sig_results_table %>%
+      filter(Risk.x == "Increased Risk")
+
+  if(nrow(harmful_results_table) == 0){
+    cat("No harmful effects found for", drug, "on indications")
+  } else{
     cat("\n\n")
     cat(knitr::kable(
-        harmful_results_table,
-        caption = paste(gsub("_", " ", drug), "Significant Associations")), 
+        harmful_results_table %>%
+          select(exposure, SNP, indication, originalname.outcome, Meaning, Risk.y),
+        caption = paste(gsub("_", " ", drug), "Significant Associations"))%>%
+          kable_styling(font_size = 14), 
         sep = "\n")
     cat("\n\n")
-    }
+  }
 }
 
 ```

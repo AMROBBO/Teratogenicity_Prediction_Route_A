@@ -225,7 +225,11 @@ create_bin_plot <- function(plot_df_bin, g, snps, gene_cols){
     )
   ) +
 
-  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+  geom_errorbar(
+    aes(colour = gene.snp), 
+    width = 0.2,
+    orientation = "y"
+    ) +
 
   geom_point(
     aes(colour = gene.snp),
@@ -283,7 +287,11 @@ create_cont_plot <- function(plot_df_cont, g, snps, gene_cols){
     )
   ) +
 
-  geom_errorbarh(aes(colour = gene.snp), height = 0.2) +
+  geom_errorbar(
+    aes(colour = gene.snp), 
+    width = 0.2,
+    orientation = "y"
+    ) +
 
   geom_point(
     aes(colour = gene.snp),
@@ -447,50 +455,130 @@ for (drug in drugs) {
   # Create a data frame for plotting
   plot_df<- create_plot_df(mr_res)
 
-  cat("\n\n### ", "Binary Outcomes", "\n\n", sep = "")
+  cat("\n\n### ", "Protective Instruments", "\n\n", sep = "")
 
-  # Binary Outcomes
+  # Results for protective instruments (i.e. those that decrease the risk of the indication)
+  prot_snps <- sig_snps %>% 
+    filter(Risk == "Decreased Risk")
+  
+  if(nrow(prot_snps) != 0){
 
-  plot_df_bin <- plot_df$plot_df %>% filter(binary == "Yes")
+    plot_df_prot <- plot_df$plot_df %>% 
+      semi_join(prot_snps, by = c("SNP", "id.exposure" = "exposure"))
 
-  for (g in plot_df$genes)  {
+    cat("\n\n", "Binary Outcomes", "\n\n", sep = "")
 
-    p <- create_bin_plot(plot_df_bin, g, plot_df$snps, plot_df$gene_cols)
+    # Binary Outcomes
 
-    suppressMessages(suppressWarnings(print(p)))
+    plot_df_prot_bin <- plot_df_prot %>% 
+      filter(binary == "Yes")
 
+    for (g in plot_df$genes)  {
+
+      p <- create_bin_plot(plot_df_prot_bin, g, plot_df$snps, plot_df$gene_cols)
+
+      suppressMessages(suppressWarnings(print(p)))
+
+    }
+
+    cat("\n\n", "Continuous Outcomes", "\n\n", sep = "")
+
+    # Continuous Outcomes
+
+    plot_df_prot_cont <- plot_df_prot %>% 
+      filter(binary == "No")
+
+    for (g in plot_df$genes)  {
+
+      p <- create_cont_plot(plot_df_prot_cont, g, plot_df$snps, plot_df$gene_cols)
+
+      suppressMessages(suppressWarnings(print(p)))
+
+    }
+
+    cat("\n\n### ", "SNP-Outcome Association Significance", "\n\n", sep = "")
+
+    # SNP-Outcome Association Significance
+
+    harmonised_data_prot <- extract_sig_SNP(drug) %>%
+      semi_join(prot_snps, by = c("SNP", "exposure" = "exposure"))
+
+    if(is.null(harmonised_data_prot)){
+      cat("No significant SNP-Outcome associations found for ", drug, " protective instruments after multiple testing correction.")
+      } else{
+      cat("\n\n")
+      cat(knitr::kable(
+        harmonised_data_prot,
+        digits = 100,
+        caption = paste0("Significant SNP-Outcome Associations for ", drug)),
+        sep = "\n")
+      cat("\n\n")
+    }
+  } else {
+    cat("No protective instruments found for ", drug)
   }
 
-  cat("\n\n### ", "Continuous Outcomes", "\n\n", sep = "")
+  cat("\n\n### ", "Harmful Instruments", "\n\n", sep = "")
 
-  # Continuous Outcomes
+  # Results for harmful instruments (i.e. those that increase the risk of the indication)
+  harm_snps <- sig_snps %>% 
+    filter(Risk == "Increased Risk")
+  
+  if(nrow(harm_snps) != 0){
 
-  plot_df_cont <- plot_df$plot_df %>% filter(binary == "No")
+    plot_df_harm <- plot_df$plot_df %>% 
+      semi_join(harm_snps, by = c("SNP", "id.exposure" = "exposure"))
 
-  for (g in plot_df$genes)  {
+    cat("\n\n", "Binary Outcomes", "\n\n", sep = "")
 
-    p <- create_cont_plot(plot_df_cont, g, plot_df$snps, plot_df$gene_cols)
+    # Binary Outcomes
 
-    suppressMessages(suppressWarnings(print(p)))
+    plot_df_harm_bin <- plot_df_harm %>% 
+      filter(binary == "Yes")
 
-  }
+    for (g in plot_df$genes)  {
 
-  cat("\n\n## ", "SNP-Outcome Association Significance", "\n\n", sep = "")
+      p <- create_bin_plot(plot_df_harm_bin, g, plot_df$snps, plot_df$gene_cols)
 
-  # SNP-Outcome Association Significance
+      suppressMessages(suppressWarnings(print(p)))
 
-  harmonised_data <- extract_sig_SNP(drug)
+    }
 
-  if(is.null(harmonised_data)){
-    cat("No significant SNP-Outcome associations found for ", drug, " after multiple testing correction.")
-    } else{
-    cat("\n\n")
-    cat(knitr::kable(
-      harmonised_data,
-      digits = 100,
-      caption = paste0("Significant SNP-Outcome Associations for ", drug)),
-      sep = "\n")
-    cat("\n\n")
+    cat("\n\n", "Continuous Outcomes", "\n\n", sep = "")
+
+    # Continuous Outcomes
+
+    plot_df_harm_cont <- plot_df_harm %>% 
+      filter(binary == "No")
+
+    for (g in plot_df$genes)  {
+
+      p <- create_cont_plot(plot_df_harm_cont, g, plot_df$snps, plot_df$gene_cols)
+
+      suppressMessages(suppressWarnings(print(p)))
+
+    }
+
+    cat("\n\n### ", "SNP-Outcome Association Significance", "\n\n", sep = "")
+
+    # SNP-Outcome Association Significance
+
+    harmonised_data_harm <- extract_sig_SNP(drug) %>%
+      semi_join(harm_snps, by = c("SNP", "exposure" = "exposure"))
+
+    if(is.null(harmonised_data_harm)){
+      cat("No significant SNP-Outcome associations found for ", drug, " harmful instruments after multiple testing correction.")
+      } else{
+      cat("\n\n")
+      cat(knitr::kable(
+        harmonised_data_harm,
+        digits = 100,
+        caption = paste0("Significant SNP-Outcome Associations for ", drug)),
+        sep = "\n")
+      cat("\n\n")
+    }
+  } else {
+    cat("No harmful instruments found for ", drug)
   }
 }
 
