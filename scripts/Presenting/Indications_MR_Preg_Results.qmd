@@ -56,6 +56,8 @@ MR_PREG_harmonised_dir <- file.path(interim_dir, "predicted_outcomes/MR_PREG/MR_
 drug_indications <- read.csv(indications_file) %>%
     filter(Approval.Level == "Prescription")
 
+drug_indications[drug_indications$Drug == "Valproate", "Drug"] <- "Valproic_acid"
+
 chosen_openGWAS_files <- chosen_openGWAS_dir %>%
     list.files(., full.names = T)
 
@@ -87,6 +89,8 @@ MR_PREG_outcome_names <- fread(MR_PREG_outcome_names_file)
 drugs <- read.csv(drugs_file) %>%
     select(Drug, Category) %>%
     arrange(Category, Drug)
+
+drugs[drugs$Drug == "Valproate", "Drug"] <- "Valproic acid"
 
 knitr::kable(
     drugs,
