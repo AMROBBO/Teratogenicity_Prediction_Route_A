@@ -1,0 +1,296 @@
+---
+title: "LLM Outcome Extraction Evaluation"
+author: "Alice Robinson"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+format: 
+    html:
+        toc: true
+        toc-location: left
+        fig-width: 10
+        fig-height: 10
+---
+
+Reading in assessed LLM and manual extractions and quantifying the concordance 
+between the two extraction methods.
+
+Assessment of concordance is based on the following categories:
+
+- Text level agreement
+    - Text extracted by both methods
+    - Text extracted only by LLM
+    - Text extracted only by manual extraction
+
+- Outcome level agreement
+    - Similar outcomes extracted by both methods
+    - Outcomes extracted only by LLM
+    - Outcomes extracted only by manual extraction
+
+```{r}
+#| label: setup
+#| include: false
+
+library(dotenv)
+library(here)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(kableExtra)
+
+#######################################################
+# Initialising file paths
+#######################################################
+
+readRenviron(here("config.env"))
+
+interim_data <- Sys.getenv("interimdatadir")
+evaluation_output_dir <- Sys.getenv("evaluationoutputdir")
+
+evaluation_dir <- file.path(interim_data, "reported_outcomes/Extraction_Evaluation")
+
+```
+
+```{r}
+#| label: Functions
+#| include: false
+#| echo: false
+
+# Creating a summary table of the number of outcomes extracted by both methods, only LLM, and only manual extraction
+
+create_text_level_agreement_table <- function(evaluation){
+  
+  both_methods <- evaluation %>%
+      filter(match_status == "Matched") %>%
+      select(Evidence_Text_LLM, Evidence_Text_manual) %>%
+      unique() %>%
+      nrow()
+
+  only_llm <- evaluation %>%
+      filter(match_status == "Only in LLM") %>%
+      select(Evidence_Text_LLM) %>%
+      unique()
+
+  n_only_llm <- nrow(only_llm)
+
+  only_manual <- evaluation %>%
+      filter(match_status == "Only in manual") %>%
+      select(Evidence_Text_manual) %>%
+      unique()
+
+  n_only_manual <- nrow(only_manual)
+
+  precision <- both_methods / (both_methods + n_only_llm) * 100
+
+  recall <- both_methods / (both_methods + n_only_manual) * 100
+
+  f1 <- 2 * (precision * recall) / (precision + recall)
+
+  text_level_agreement <- data.frame(
+    Metric = c("Both Methods", "LLM Only", "Manual Only", "Precision", "Recall", "F1"),
+    Value = c(both_methods, n_only_llm, n_only_manual, precision, recall, f1)
+  ) %>%
+    mutate(Value = round(Value, 0))
+
+  return(list(text_level_agreement = text_level_agreement, only_llm = only_llm, only_manual = only_manual))
+}
+
+create_outcome_level_agreement_table <- function(evaluation){
+
+  outcome_level <- evaluation %>%
+    filter(match_status == "Matched")
+
+  n_captured_manual <- 0
+
+  missed_manual <- data.frame()
+
+  for(i in unique(outcome_level$Evidence_Text_manual)){
+
+    extraction <- outcome_level %>%
+      filter(Evidence_Text_manual == i)
+
+    for(j in unique(extraction$Outcome_manual)){
+
+      agreement <- extraction %>%
+        filter(Outcome_manual == j) %>%
+        select(Agreement)
+
+      if(any(agreement == "Yes")){
+
+        n_captured_manual <- n_captured_manual + 1
+
+      } else {
+
+        missed_manual <- rbind(missed_manual, extraction %>%
+                          filter(Outcome_manual == j) %>%
+                          select(Outcome_LLM, Outcome_manual, Evidence_Text_LLM, Evidence_Text_manual, Agreement, Comment)
+        )
+      }
+    }
+  }
+
+  n_captured_LLM <- 0
+
+  missed_LLM <- data.frame()
+
+  for(i in unique(outcome_level$Evidence_Text_LLM)){
+
+    extraction <- outcome_level %>%
+      filter(Evidence_Text_LLM == i)
+
+    for(j in unique(extraction$Outcome_LLM)){
+
+      agreement <- extraction %>%
+        filter(Outcome_LLM == j) %>%
+        select(Agreement)
+
+      if(any(agreement == "Yes")){
+
+        n_captured_LLM <- n_captured_LLM + 1
+
+      } else {
+
+        missed_LLM <- rbind(missed_LLM, extraction %>%
+                          filter(Outcome_LLM == j) %>%
+                          select(Outcome_LLM, Outcome_manual, Evidence_Text_LLM, Evidence_Text_manual, Agreement, Comment)
+        )
+      }
+    }
+  }
+
+  LLM_recall <- n_captured_manual / (n_captured_manual + nrow(missed_manual)) * 100
+  LLM_precision <- n_captured_LLM / (n_captured_LLM + nrow(missed_LLM)) * 100
+  LLM_f1 <- 2 * (LLM_precision * LLM_recall) / (LLM_precision + LLM_recall)
+
+  outcome_level_agreement <- data.frame(
+    Metric = c("Manual Outcomes Captured by LLM", "Manual Outcomes Missed by LLM", "LLM Outcomes Captured by Manual", "LLM Outcomes Missed by Manual", "LLM Recall", "LLM Precision", "LLM F1"),
+    Value = c(n_captured_manual, nrow(missed_manual), n_captured_LLM, nrow(missed_LLM), LLM_recall, LLM_precision, LLM_f1)
+  ) %>%
+    mutate(Value = round(Value, 0))
+
+  return(list(outcome_level_agreement = outcome_level_agreement, missed_manual = missed_manual, missed_LLM = missed_LLM))
+}
+
+```
+
+```{r}
+#| label: Extraction Evaluation
+#| include: true
+#| echo: false
+#| results: asis
+
+reports <- c("Reprotox", "TERIS", "UKTIS")
+
+for(r in reports){
+
+  cat("#", r, "\n\n")
+
+  evaluation_dir <- file.path(evaluation_dir, r, "5_mapped_ordered_agreement")
+
+  evaluation_files <- evaluation_dir %>%
+    list.files(, pattern = "mapped_ordered_agreement.csv", full.names = T)
+
+  for (f in evaluation_files) {
+
+    evaluation <- f %>%
+      fread()
+
+    #######################################################
+    # Text Level Agreement Quantification
+    #######################################################
+
+    # Creating a summary table of the number of outcomes extracted by both methods, only LLM, and only manual extraction
+    text_level_agreement <- create_text_level_agreement_table(evaluation)
+
+    #######################################################
+    # Outcome Level Agreement Quantification
+    #######################################################
+
+    outcome_level_agreement <- create_outcome_level_agreement_table(evaluation)
+
+    #######################################################
+    # Print Tables and Disagreeing Extractions
+    #######################################################
+    drug_name <- basename(f) %>%
+      gsub("_mapped_ordered_agreement.csv", "", .) %>%
+      gsub("_", " ", .)
+
+    cat("##", drug_name, "\n\n")
+      
+    cat("###", "Text Level Agreement", "\n\n")
+
+    cat("Summary Table", "\n\n")
+
+    cat(knitr::kable(
+        text_level_agreement$text_level_agreement,
+        caption = "Text-level agreement") %>%
+          kable_styling(font_size = 14),
+        sep = "\n")
+
+    if(nrow(text_level_agreement$only_llm) == 0 & nrow(text_level_agreement$only_manual) == 0){
+      cat("No disagreeing extractions found.", "\n\n")
+    } else {
+      cat("Disagreeing Extractions", "\n\n")
+    }
+
+    if(nrow(text_level_agreement$only_llm) != 0){
+      
+      cat(knitr::kable(
+          text_level_agreement$only_llm,
+          caption = "Text extracted only by LLM") %>%
+            kable_styling(font_size = 14),
+          sep = "\n")
+    }
+
+    if(nrow(text_level_agreement$only_manual) != 0){
+      cat(knitr::kable(
+          text_level_agreement$only_manual,
+          caption = "Text extracted only by manual extraction") %>%
+            kable_styling(font_size = 14),
+          sep = "\n")
+    }
+
+    cat("###", "Outcome Level Agreement", "\n\n")
+
+    cat("Summary Table", "\n\n")
+
+    cat(knitr::kable(
+        outcome_level_agreement$outcome_level_agreement,
+        caption = "Outcome-level agreement") %>%
+          kable_styling(font_size = 14),
+        sep = "\n")
+
+    if(nrow(outcome_level_agreement$missed_manual) == 0 & nrow(outcome_level_agreement$missed_LLM) == 0){
+      cat("No disagreeing extractions found.", "\n\n")
+    } else {
+      cat("Disagreeing Extractions", "\n\n")
+    }
+
+    if(nrow(outcome_level_agreement$missed_manual) != 0){
+      cat(knitr::kable(
+          outcome_level_agreement$missed_manual,
+          caption = "Outcomes extracted only by manual extraction") %>%
+            kable_styling(font_size = 14),
+          sep = "\n")
+    }
+
+    if(nrow(outcome_level_agreement$missed_LLM) != 0){
+      cat(knitr::kable(
+          outcome_level_agreement$missed_LLM,
+          caption = "Outcomes extracted only by LLM") %>%
+            kable_styling(font_size = 14),
+          sep = "\n")
+    }
+  }
+}
+
+```
+
+```{r}
+#| eval: false
+#| include: false
+
+quarto::quarto_render(
+  "scripts/02_Extracting_Reported_Side_Effects/02d_Report_Outcome_Extraction/02de_Extraction_Evaluation/02de5_Outcome_Evaluation_Quantification.qmd",
+  quarto_args = c("--output-dir", evaluation_output_dir)
+)
+
+```

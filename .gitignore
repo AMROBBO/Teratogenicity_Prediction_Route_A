@@ -64,3 +64,6 @@ config.env
 # Logs
 logs/
 .log
+
+# Quarto render artifacts
+.vdoc.*
